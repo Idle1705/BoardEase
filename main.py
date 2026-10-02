@@ -4,12 +4,20 @@ from single_room import SingleRoom
 from shared_room import SharedRoom
 from utility_reading import UtilityReading
 from boarding_house import BoardingHouse
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 
 def main():
+    # The classroom demonstration must never add sample data to the owner's ledger.
+    with TemporaryDirectory(prefix='boardease-demo-') as directory:
+        run_demo(Path(directory) / 'demo_ledger.xlsx')
+
+
+def run_demo(ledger_filepath):
     # Set up owner and boarding house
     owner = Owner("Mrs. Santos", "0917-000-0001")
-    house = BoardingHouse(owner)
+    house = BoardingHouse(owner, ledger_filepath)
 
     # Set up rooms
     room_101 = SingleRoom("101", 3500.0)
@@ -22,9 +30,9 @@ def main():
     maria = Tenant("Maria Reyes", "0917-222-2222")
     pedro = Tenant("Pedro Ramos", "0917-333-3333")
 
-    room_101.add_tenant(juan)
-    room_102.add_tenant(maria)
-    room_102.add_tenant(pedro)
+    house.add_tenant(juan, room_101)
+    house.add_tenant(maria, room_102)
+    house.add_tenant(pedro, room_102)
 
     # Record utility usage for the month
     reading_101 = UtilityReading(room_101, "2026-09", 40, 5, 12.0, 30.0)
