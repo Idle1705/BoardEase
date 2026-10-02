@@ -11,12 +11,12 @@ class Notification:
 
     @staticmethod
     def create_reminder(bill):
-        msg = (f"Your bill for {bill.month} (P{bill.get_total_amount():.2f}) "
+        msg = (f"Your remaining balance for {bill.month} (P{bill.balance:.2f}) "
                f"is due on {bill.due_date}.")
         return Notification(bill.tenant, msg, "REMINDER")
 
     @staticmethod
     def create_overdue_alert(bill):
-        msg = (f"Your bill for {bill.month} (P{bill.get_total_amount():.2f}) "
+        msg = (f"Your remaining balance for {bill.month} (P{bill.balance:.2f}) "
                f"is overdue since {bill.due_date}.")
         return Notification(bill.tenant, msg, "OVERDUE")
