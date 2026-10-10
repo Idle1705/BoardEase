@@ -1,5 +1,4 @@
-from datetime import datetime
-from bill import Bill, BillingStatement, billing_month, money, iso_date
+from bill import Bill, BillingStatement, billing_month, money, iso_date, input_month, contact_number
 from payment import Payment
 from notification import Notification
 from excel_ledger import ExcelLedger
@@ -9,6 +8,8 @@ from tenant import Tenant
 
 
 class BoardingHouse:
+    SHARED_CAPACITIES = (2, 3)
+
     def __init__(self, owner, ledger_filepath='billing_ledger.xlsx'):
         self.owner = owner
         self.rooms = []
@@ -37,6 +38,8 @@ class BoardingHouse:
         capacity = room.get_max_occupancy()
         if not isinstance(capacity, int) or capacity < 1:
             raise ValueError('Shared room capacity must be a positive whole number.')
+        if log and isinstance(room, SharedRoom) and capacity not in self.SHARED_CAPACITIES:
+            raise ValueError('A shared room holds 2 or 3 tenants.')
         if log:
             self.ledger.add_room(room)
         self.rooms.append(room)
@@ -48,6 +51,8 @@ class BoardingHouse:
         tenant.contact_number = tenant.contact_number.strip()
         if not tenant.name or (log and not tenant.contact_number):
             raise ValueError('Name and contact number are required.')
+        if log:
+            tenant.contact_number = contact_number(tenant.contact_number)
         if self.find_tenant(tenant.name):
             raise ValueError('A tenant with this name already exists. Use a distinct full name.')
         if tenant.assigned_room is not None or len(room.tenants) >= room.get_max_occupancy():
@@ -71,6 +76,9 @@ class BoardingHouse:
             raise ValueError('Capacity must be a whole number and cannot be below current occupancy.')
         if isinstance(room, SingleRoom) and capacity != 1:
             raise ValueError('A single room has capacity 1.')
+        if (isinstance(room, SharedRoom) and capacity not in self.SHARED_CAPACITIES
+                and capacity != room.get_max_occupancy()):
+            raise ValueError('A shared room holds 2 or 3 tenants.')
         self.ledger.update_room(room, rent, capacity)
         room.base_rent = rent
         if isinstance(room, SharedRoom):
@@ -82,6 +90,7 @@ class BoardingHouse:
         name, contact = name.strip(), contact.strip()
         if not name or not contact:
             raise ValueError('Name and contact number are required.')
+        contact = contact_number(contact)
         existing = self.find_tenant(name)
         if existing is not None and existing is not tenant:
             raise ValueError('A tenant with this name already exists.')
@@ -149,10 +158,7 @@ class BoardingHouse:
         room = reading.room
         if room not in self.rooms or not room.tenants:
             raise ValueError('Select an occupied room.')
-        try:
-            month = datetime.strptime(reading.month, '%Y-%m').strftime('%Y-%m')
-        except ValueError:
-            raise ValueError('Enter the billing month as YYYY-MM.') from None
+        month = input_month(reading.month)
         due_date = iso_date(due_date)
         for field in ('electricity_kwh', 'water_cubic_m', 'electricity_rate_per_kwh', 'water_rate_per_cubic_m'):
             money(getattr(reading, field))

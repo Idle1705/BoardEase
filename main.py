@@ -26,9 +26,9 @@ def run_demo(ledger_filepath):
     house.add_room(room_102)
 
     # Set up tenants
-    juan = Tenant("Juan Dela Cruz", "0917-111-1111")
-    maria = Tenant("Maria Reyes", "0917-222-2222")
-    pedro = Tenant("Pedro Ramos", "0917-333-3333")
+    juan = Tenant("Juan Dela Cruz", "09171111111")
+    maria = Tenant("Maria Reyes", "09172222222")
+    pedro = Tenant("Pedro Ramos", "09173333333")
 
     house.add_tenant(juan, room_101)
     house.add_tenant(maria, room_102)

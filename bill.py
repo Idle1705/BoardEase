@@ -1,4 +1,5 @@
 """Bill amounts and payment status, shared by the GUI and Excel storage."""
+import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from uuid import uuid4
@@ -20,10 +21,30 @@ def iso_date(value):
         return value.date().isoformat()
     if isinstance(value, date):
         return value.isoformat()
+    text = str(value).strip()
     try:
-        return date.fromisoformat(str(value).strip()).isoformat()
+        if not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}', text):
+            raise ValueError
+        return date.fromisoformat(text).isoformat()
     except ValueError:
-        raise ValueError('Enter a valid date in YYYY-MM-DD format.') from None
+        raise ValueError('Enter a valid date in YYYY-MM-DD format, for example 2026-10-31.') from None
+
+
+def input_month(value):
+    text = str(value).strip()
+    try:
+        if not re.fullmatch(r'[0-9]{4}-[0-9]{2}', text):
+            raise ValueError
+        return datetime.strptime(text, '%Y-%m').strftime('%Y-%m')
+    except ValueError:
+        raise ValueError('Enter the billing month as YYYY-MM, for example 2026-10.') from None
+
+
+def contact_number(value):
+    text = str(value).strip()
+    if not re.fullmatch(r'[0-9]{11}', text):
+        raise ValueError('Contact number must be exactly 11 digits, for example 09171234567.')
+    return text
 
 
 def billing_month(value):

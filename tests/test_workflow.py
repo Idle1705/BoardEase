@@ -58,7 +58,7 @@ class WorkflowTests(unittest.TestCase):
         room = SingleRoom('102', 1)
         self.house.add_room(room)
         with self.assertRaises(ValueError):
-            self.house.add_tenant(Tenant('test tenant', '123'), room)
+            self.house.add_tenant(Tenant('test tenant', '09170000123'), room)
         with self.assertRaises(ValueError):
             self.house.generate_bills_for_room(UtilityReading(self.room, '2026-10', 0, 0, 1, 1), '2099-10-31')
 
@@ -66,13 +66,48 @@ class WorkflowTests(unittest.TestCase):
         room = SharedRoom('S', 6000, 2)
         self.house.add_room(room)
         for name in ('One', 'Two'):
-            self.house.add_tenant(Tenant(name, '123'), room)
+            self.house.add_tenant(Tenant(name, '09170000123'), room)
         with self.assertRaises(ValueError):
-            self.house.add_tenant(Tenant('Three', '123'), room)
+            self.house.add_tenant(Tenant('Three', '09170000123'), room)
         with self.assertRaises(ValueError):
             self.house.add_room(SharedRoom('bad', 100, 0))
         with self.assertRaises(ValueError):
             self.house.add_room(SingleRoom('negative', -1))
+
+    def test_shared_rooms_hold_two_or_three_tenants(self):
+        for capacity in (1, 4, 6):
+            with self.subTest(capacity=capacity), self.assertRaises(ValueError):
+                self.house.add_room(SharedRoom(f'S{capacity}', 6000, capacity))
+        room = SharedRoom('S3', 6000, 3)
+        self.house.add_room(room)
+        with self.assertRaises(ValueError):
+            self.house.edit_room(room, 6000, 4)
+        self.house.edit_room(room, 6000, 2)
+        self.assertEqual(self.reload().find_room('S3').get_max_occupancy(), 2)
+
+    def test_contact_number_must_be_eleven_digits(self):
+        room = SharedRoom('S', 6000, 3)
+        self.house.add_room(room)
+        for contact in ('0917123456', '091712345678', '0917-123-4567', '0917123456a', '0981231879023'):
+            with self.subTest(contact=contact), self.assertRaises(ValueError):
+                self.house.add_tenant(Tenant(f'Tenant {contact}', contact), room)
+            with self.subTest(edit=contact), self.assertRaises(ValueError):
+                self.house.edit_tenant(self.tenant, self.tenant.name, contact)
+        self.house.add_tenant(Tenant('Valid Tenant', ' 09171234567 '), room)
+        self.assertEqual(self.reload().find_tenant('Valid Tenant').contact_number, '09171234567')
+        self.assertEqual(self.tenant.contact_number, '09171234567')
+
+    def test_dates_and_months_require_exact_format(self):
+        for value in ('2026/10/02', '20261002', '2026-10-2', '10-02-2026', '2026-13-01', '2026-02-30'):
+            with self.subTest(date=value), self.assertRaises(ValueError):
+                self.house.record_payment(self.bill, 100, value)
+        for month in ('2026-1', '202611', '2026/11', '2026-11-01', '11-2026'):
+            with self.subTest(month=month), self.assertRaises(ValueError):
+                self.house.generate_bills_for_room(UtilityReading(self.room, month, 0, 0, 1, 1), '2099-11-30')
+        with self.assertRaises(ValueError):
+            self.house.generate_bills_for_room(UtilityReading(self.room, '2026-11', 0, 0, 1, 1), '2099/11/30')
+        self.assertEqual(len(self.house.payments), 0)
+        self.assertEqual(len(self.house.bills), 1)
 
     def test_failed_save_does_not_apply_payment(self):
         with patch.object(self.house.ledger, '_save', side_effect=PermissionError('locked')):
@@ -118,8 +153,8 @@ class WorkflowTests(unittest.TestCase):
                 self.house.add_room(room)
         self.assertIsNone(self.house.find_room('202'))
         self.house.add_room(room)
-        self.house.add_tenant(Tenant('One', '123'), room)
-        self.house.add_tenant(Tenant('Two', '456'), room)
+        self.house.add_tenant(Tenant('One', '09170000123'), room)
+        self.house.add_tenant(Tenant('Two', '09170000456'), room)
         with patch.object(self.house.ledger, '_save', side_effect=PermissionError('locked')):
             with self.assertRaises(PermissionError):
                 self.house.generate_bills_for_room(UtilityReading(room, '2026-10', 0, 0, 0, 0), '2099-10-31')
