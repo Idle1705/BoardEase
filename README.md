@@ -22,12 +22,12 @@ Keep the workbook closed in Excel while saving changes. Run one BoardEase instan
 ## Pages
 
 - **Dashboard:** room/tenant counts, paid/unpaid/overdue bills, totals, recent billing, quick actions, collection progress.
-- **Rooms & Tenants:** room and tenant tables with modal add/edit forms, room transfer, and tenant removal that archives billing history.
+- **Rooms & Tenants:** room and tenant tables with modal add/edit forms, room transfer, and tenant removal that archives billing history. Shared rooms hold 2 or 3 tenants (chosen from a dropdown). Contact numbers must be exactly 11 digits, such as `09171234567`; the field accepts digits only.
 - **Billing:** generate bills for all current occupants of a room; search tenant/room and filter All, Unpaid, Partial, Paid, or Overdue. Select a bill to see its full details or open payment entry.
 - **Payments:** selected-bill summary, partial/full payments, and persistent transaction history with the balance after each payment.
 - **Reports:** select a tenant and billing month, then use **Generate PDF**, **Open PDF**, or **Print PDF**. Notices are A4 portrait with dark text, simple borders, peso amounts, payment status, and signature/date-received lines for physical delivery. No tenant report is exported to Excel.
 
-All amounts display Philippine pesos. Dates use `YYYY-MM-DD`, and new billing periods use `YYYY-MM`. Tables resize their columns to fit the window without horizontal scrollbars. Page scrolling appears only when content exceeds the available height; large tables receive a vertical scrollbar. The interface is checked at 1280 x 720, 1366 x 768, 1440 x 900, and 1920 x 1080.
+All amounts display Philippine pesos. Dates must be entered exactly as `YYYY-MM-DD` (for example `2026-10-31`), and new billing periods as `YYYY-MM`; these fields accept only digits and hyphens. The **Open Excel** button beside the data file name in the sidebar opens the ledger workbook in Excel for viewing. Close Excel before saving changes in BoardEase. Tables resize their columns to fit the window without horizontal scrollbars. Page scrolling appears only when content exceeds the available height; large tables receive a vertical scrollbar. The interface is checked at 1280 x 720, 1366 x 768, 1440 x 900, and 1920 x 1080.
 
 ## Payment and storage behavior
 

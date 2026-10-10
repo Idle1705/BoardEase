@@ -20,7 +20,7 @@ class GuiWorkflowTests(unittest.TestCase):
                 app = BoardEaseApp(root, ledger_filepath=Path(directory) / 'ledger.xlsx')
                 room = SingleRoom('102', 100)
                 app.house.add_room(room)
-                app.house.add_tenant(Tenant('Maria Santos', '123'), room)
+                app.house.add_tenant(Tenant('Maria Santos', '09170000123'), room)
                 for month in ('2026-10', '2026-11'):
                     app.house.generate_bills_for_room(UtilityReading(room, month, 3, 2, 10, 10), '2099-11-30')
                 app.show_page('Reports')
@@ -72,6 +72,39 @@ class GuiWorkflowTests(unittest.TestCase):
             self.assertEqual(len(calls), 2)
         finally:
             root.destroy()
+
+    def test_open_excel_capacity_choices_and_input_filters(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = tk.Tk()
+            self.addCleanup(root.destroy)
+            app = BoardEaseApp(root, ledger_filepath=Path(directory) / 'ledger.xlsx')
+            with patch('gui_app.os.startfile') as dispatch:
+                app.open_excel_button.invoke()
+                dispatch.assert_called_once_with(str(app.house.ledger.filepath.resolve()), 'open')
+            self.assertIn('Close Excel', app.notice.get())
+            form = app.add_room_dialog()
+            self.assertEqual(list(form.widgets['capacity'].cget('values')), ['2', '3'])
+            self.assertIn('disabled', form.widgets['capacity'].state())
+            form.fields['type'].set('Shared')
+            self.assertIn('readonly', form.widgets['capacity'].state())
+            form.destroy()
+            app.house.add_room(SingleRoom('101', 100))
+            form = app.add_tenant_dialog()
+            contact = form.widgets['contact']
+            def type_text(entry, text):
+                for char in text:
+                    entry.insert('end', char)
+            type_text(contact, '0917-123')
+            self.assertEqual(contact.get(), '0917123')
+            type_text(contact, '456789')
+            self.assertEqual(contact.get(), '09171234567')
+            form.destroy()
+            form = app.overdue_dialog()
+            due = form.widgets['date']
+            due.delete(0, 'end')
+            type_text(due, '2026/10/31x')
+            self.assertEqual(due.get(), '20261031')
+            form.destroy()
 
     def test_complete_desktop_workflow_and_empty_pages(self):
         with tempfile.TemporaryDirectory() as directory:

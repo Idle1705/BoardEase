@@ -18,7 +18,7 @@ class CleanupBackendTests(unittest.TestCase):
         self.house = BoardingHouse(Owner('Owner', ''), self.path)
         self.room = SingleRoom('1', 100)
         self.house.add_room(self.room)
-        self.tenant = Tenant('Tenant One', '123')
+        self.tenant = Tenant('Tenant One', '09170000123')
         self.house.add_tenant(self.tenant, self.room)
         self.bill = self.house.generate_bills_for_room(UtilityReading(self.room, '2026-10', 3, 2, 10, 15), '2099-10-31')[0]
 
@@ -47,7 +47,7 @@ class CleanupBackendTests(unittest.TestCase):
 
     def test_edit_transfer_and_remove_preserve_history(self):
         self.assertTrue(hasattr(self.house, 'edit_tenant'))
-        self.house.edit_tenant(self.tenant, 'Renamed Tenant', '456')
+        self.house.edit_tenant(self.tenant, 'Renamed Tenant', '09170000456')
         target = SingleRoom('2', 200)
         self.house.add_room(target)
         self.house.transfer_tenant(self.tenant, target)
@@ -110,7 +110,7 @@ class CleanupBackendTests(unittest.TestCase):
         room = SharedRoom('S', 100, 3)
         self.house.add_room(room)
         for i in range(3):
-            self.house.add_tenant(Tenant(f'Shared {i}', '123'), room)
+            self.house.add_tenant(Tenant(f'Shared {i}', '09170000123'), room)
         bills = self.house.generate_bills_for_room(UtilityReading(room, '2026-10', 1, 1, 1, 1), '2099-10-31')
         self.assertEqual(round(sum(b.get_total_amount() for b in bills), 2), 102)
         self.assertEqual(round(sum(b.rent_share for b in bills), 2), 100)

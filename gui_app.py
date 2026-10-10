@@ -1,6 +1,7 @@
 """BoardEase desktop dashboard. Run: python gui_app.py [--ledger path.xlsx]."""
 import argparse
 import calendar
+import os
 import tkinter as tk
 from datetime import date
 from pathlib import Path
@@ -25,6 +26,19 @@ def room_type(room):
     return type(room).__name__.replace('Room', '')
 
 
+# Keystroke filters: allowed characters and maximum length for restricted entries.
+INPUT_RULES = {'date': ('0123456789-', 10), 'month': ('0123456789-', 7), 'phone': ('0123456789', 11)}
+
+
+def restrict_entry(entry, kind):
+    allowed, limit = INPUT_RULES[kind]
+    # Deletions (action 0) are always allowed so an older, invalid value can still be corrected.
+    check = entry.register(lambda action, text: action == '0' or
+                           (len(text) <= limit and all(c in allowed for c in text)))
+    entry.configure(validate='key', validatecommand=(check, '%d', '%P'))
+    return entry
+
+
 class FormDialog(tk.Toplevel):
     """A compact modal form with inline errors and one save action."""
     def __init__(self, app, title, subtitle, specs, on_submit, action='Save'):
@@ -40,11 +54,13 @@ class FormDialog(tk.Toplevel):
         ttk.Label(body, text=title, style='Section.TLabel').grid(row=0, column=0, columnspan=2, sticky='w')
         ttk.Label(body, text=subtitle, style='Muted.TLabel', wraplength=440).grid(
             row=1, column=0, columnspan=2, sticky='w', pady=(5, 20))
-        for row, (key, label, default, choices) in enumerate(specs, 2):
+        for row, (key, label, default, choices, *kind) in enumerate(specs, 2):
             ttk.Label(body, text=label, style='Card.TLabel').grid(row=row, column=0, sticky='w', padx=(0, 18), pady=7)
             var = tk.StringVar(value=default)
             widget = (ttk.Combobox(body, textvariable=var, values=choices, state='readonly', width=29)
                       if choices is not None else ttk.Entry(body, textvariable=var, width=32))
+            if kind and choices is None:
+                restrict_entry(widget, kind[0])
             widget.grid(row=row, column=1, sticky='ew', pady=7)
             self.fields[key], self.widgets[key] = var, widget
         self.error = tk.StringVar()
@@ -149,9 +165,13 @@ class BoardEaseApp:
             self.nav_buttons[page] = button
         RoundedButton(side, text='↪    Exit', command=self.root.destroy, variant='nav').pack(
             side='bottom', fill='x', padx=12, pady=14)
-        tk.Label(side, text=f'DATA FILE\n{self.house.ledger.filepath.name}', wraplength=182,
-                 justify='left', bg=NAVY, fg='#9ECDFB', font=('Segoe UI', 10)).pack(
-                     side='bottom', anchor='w', padx=24, pady=18)
+        data_file = tk.Frame(side, bg=NAVY)
+        data_file.pack(side='bottom', fill='x', padx=(24, 12), pady=18)
+        self.open_excel_button = RoundedButton(data_file, text='Open Excel', command=self.open_ledger,
+                                               style='Compact.TButton')
+        self.open_excel_button.pack(side='right')
+        tk.Label(data_file, text=f'DATA FILE\n{self.house.ledger.filepath.name}', wraplength=110,
+                 justify='left', bg=NAVY, fg='#9ECDFB', font=('Segoe UI', 10)).pack(side='left', anchor='w')
         tk.Frame(side, bg='#365171', height=1).pack(side='bottom', fill='x', padx=24)
         shell = ttk.Frame(self.root)
         shell.pack(side='left', fill='both', expand=True)
@@ -176,6 +196,19 @@ class BoardEaseApp:
         self.canvas.bind('<Configure>', lambda e: self.canvas.itemconfigure(self.content_window, width=e.width))
         self.content.bind('<Configure>', lambda e: self.canvas.configure(scrollregion=self.canvas.bbox('all')))
         self.root.bind('<MouseWheel>', self._scroll)
+
+    def open_ledger(self):
+        path = self.house.ledger.filepath.resolve()
+        try:
+            if not path.is_file():
+                raise OSError(f'The ledger file was not found: {path}')
+            if os.name != 'nt':
+                raise OSError(f'Open this workbook in your spreadsheet app: {path}')
+            os.startfile(str(path), 'open')
+        except OSError as error:
+            self.notice.set(str(error))
+            return
+        self.notice.set('Ledger opened in Excel for viewing. Close Excel before saving changes in BoardEase.')
 
     def _scroll(self, event):
         if event.widget.winfo_toplevel() is not self.root or isinstance(event.widget, ttk.Combobox):
@@ -403,9 +436,12 @@ class BoardEaseApp:
                 raise ValueError('Capacity must be a positive whole number.') from None
             self.house.edit_room(room, values['rent'], capacity)
             self.notice.set(f'Room {room.room_number} updated. Existing bills retain their recorded amounts.')
+        current = str(room.get_max_occupancy())
+        capacities = (['1'] if isinstance(room, SingleRoom) else
+                      sorted({*map(str, BoardingHouse.SHARED_CAPACITIES), current}, key=int))
         return FormDialog(self, f'Edit Room {room.room_number}', 'Changes apply to future bills and room availability.',
                           [('rent','Monthly rent (₱)',str(room.base_rent),None),
-                           ('capacity','Capacity',str(room.get_max_occupancy()),None)], save)
+                           ('capacity','Capacity',current,capacities)], save)
 
     def edit_tenant_dialog(self):
         tenant = self._selected_tenant()
@@ -416,7 +452,8 @@ class BoardEaseApp:
             self.house.edit_tenant(tenant, values['name'], values['contact'])
             self.notice.set('Tenant details updated.')
         return FormDialog(self, 'Edit Tenant', 'Update the tenant details used throughout BoardEase.',
-                          [('name','Full name',tenant.name,None), ('contact','Contact number',tenant.contact_number,None)], save)
+                          [('name','Full name',tenant.name,None),
+                           ('contact','Contact number (11 digits)',tenant.contact_number,None,'phone')], save)
 
     def transfer_tenant_dialog(self):
         tenant = self._selected_tenant()
@@ -546,7 +583,8 @@ class BoardEaseApp:
         self.payment_amount = tk.StringVar()
         self.payment_date = tk.StringVar(value=date.today().isoformat())
         ttk.Entry(form, textvariable=self.payment_amount, width=22).grid(row=1,column=0,sticky='w',pady=6)
-        ttk.Entry(form, textvariable=self.payment_date, width=22).grid(row=1,column=1,sticky='w',padx=16,pady=6)
+        restrict_entry(ttk.Entry(form, textvariable=self.payment_date, width=22), 'date').grid(
+            row=1,column=1,sticky='w',padx=16,pady=6)
         button = RoundedButton(form, text='Record Payment', command=self.record_payment, style='Primary.TButton')
         button.grid(row=1,column=2,sticky='w',padx=8)
         self.payment_error = tk.StringVar()
@@ -742,7 +780,7 @@ class BoardEaseApp:
                 try:
                     capacity = int(values['capacity'])
                 except ValueError:
-                    raise ValueError('Shared capacity must be a positive whole number.') from None
+                    raise ValueError('Choose a shared capacity of 2 or 3.') from None
                 room = SharedRoom(values['number'], values['rent'], capacity)
             else:
                 room = SingleRoom(values['number'], values['rent'])
@@ -750,9 +788,10 @@ class BoardEaseApp:
             self.notice.set(f'Room {room.room_number} added.')
         form = FormDialog(self, 'Add Room', 'Set up the room and its monthly rent.', [
             ('number','Room number','',None), ('type','Room type','Single',['Single','Shared']),
-            ('rent','Base rent (₱)','',None), ('capacity','Shared capacity','2',None)], save, 'Add Room')
+            ('rent','Base rent (₱)','',None),
+            ('capacity','Shared capacity (tenants)','2',[str(n) for n in BoardingHouse.SHARED_CAPACITIES])], save, 'Add Room')
         def toggle(*args):
-            form.widgets['capacity'].configure(state='normal' if form.fields['type'].get() == 'Shared' else 'disabled')
+            form.widgets['capacity'].configure(state='readonly' if form.fields['type'].get() == 'Shared' else 'disabled')
         form.fields['type'].trace_add('write', toggle)
         toggle()
         return form
@@ -769,7 +808,7 @@ class BoardEaseApp:
             self.house.add_tenant(Tenant(values['name'], values['contact']), rooms[choices.index(values['room'])])
             self.notice.set(f"Tenant {values['name']} added and assigned to a room.")
         return FormDialog(self, 'Add Tenant', 'Only rooms with available spaces are listed.', [
-            ('name','Full name','',None), ('contact','Contact number','',None),
+            ('name','Full name','',None), ('contact','Contact number (11 digits)','',None,'phone'),
             ('room','Assign to room',choices[0],choices)], save, 'Add Tenant')
 
     def generate_bills_dialog(self):
@@ -791,10 +830,10 @@ class BoardEaseApp:
             bills = self.house.generate_bills_for_room(reading, values['due'])
             self.notice.set(f'{len(bills)} monthly bill(s) generated and saved.')
         return FormDialog(self, 'Generate Monthly Bills', 'Rent and utilities are divided equally among current occupants.', [
-            ('room','Room',choices[0],choices), ('month','Month (YYYY-MM)',today.strftime('%Y-%m'),None),
+            ('room','Room',choices[0],choices), ('month','Month (YYYY-MM)',today.strftime('%Y-%m'),None,'month'),
             ('electricity','Electricity usage (kWh)','0',None), ('water','Water usage (m³)','0',None),
             ('electricity_rate','Electricity rate (₱/kWh)','12',None), ('water_rate','Water rate (₱/m³)','30',None),
-            ('due','Due date (YYYY-MM-DD)',last_day.isoformat(),None)], save, 'Generate Bills')
+            ('due','Due date (YYYY-MM-DD)',last_day.isoformat(),None,'date')], save, 'Generate Bills')
 
     def overdue_dialog(self):
         def check(values):
@@ -804,7 +843,7 @@ class BoardEaseApp:
                 [(i, (b.tenant.name,b.room_number,b.month,format_currency(b.balance),b.due_date),'OVERDUE')
                  for i,b in enumerate(bills)], 'No overdue bills as of this date.')
         return FormDialog(self, 'Check Overdue Bills', 'Choose the date to check outstanding balances against.',
-                          [('date','As of (YYYY-MM-DD)',date.today().isoformat(),None)], check, 'Check Overdue')
+                          [('date','As of (YYYY-MM-DD)',date.today().isoformat(),None,'date')], check, 'Check Overdue')
 
     def _results_dialog(self, title, subtitle, columns, rows, empty):
         window = tk.Toplevel(self.root)
