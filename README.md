@@ -22,7 +22,7 @@ Keep the workbook closed in Excel while saving changes. Run one BoardEase instan
 ## Pages
 
 - **Dashboard:** room/tenant counts, paid/unpaid/overdue bills, totals, recent billing, quick actions, collection progress.
-- **Rooms & Tenants:** room and tenant tables with modal add/edit forms, room transfer, and tenant removal that archives billing history. Shared rooms hold 2 or 3 tenants (chosen from a dropdown). Contact numbers must be exactly 11 digits, such as `09171234567`; the field accepts digits only.
+- **Rooms & Tenants:** room and tenant tables with modal add/edit forms, room transfer, and tenant removal that archives billing history. Shared rooms hold 2 or 3 tenants (chosen from a dropdown). Contact numbers must be exactly 11 digits, such as `09171234567`, and cannot repeat another tenant's number; the field accepts digits only. Transfer, Remove, and Edit show a popup when no row is selected, no other room has space, or the workbook cannot be saved.
 - **Billing:** generate bills for all current occupants of a room; search tenant/room and filter All, Unpaid, Partial, Paid, or Overdue. Select a bill to see its full details or open payment entry.
 - **Payments:** selected-bill summary, partial/full payments, and persistent transaction history with the balance after each payment.
 - **Reports:** select a tenant and billing month, then use **Generate PDF**, **Open PDF**, or **Print PDF**. Notices are A4 portrait with dark text, simple borders, peso amounts, payment status, and signature/date-received lines for physical delivery. No tenant report is exported to Excel.
@@ -33,7 +33,7 @@ All amounts display Philippine pesos. Dates must be entered exactly as `YYYY-MM-
 
 A bill is paid only when its recorded payment total covers its bill total. An outstanding bill past its due date displays **OVERDUE**; otherwise a bill with some payment displays **PARTIAL**, and one with none displays **UNPAID**. The Unpaid filter includes every outstanding bill; Partial includes overdue bills with a partial payment. Dashboard totals cover all billing periods. Payment-history status describes the balance immediately after that transaction.
 
-The existing Rooms, Tenants, and Billing sheets are preserved. On first upgrade, BoardEase copies the original workbook to a timestamped file in `backups/`, appends missing Bill ID, Electricity Share, Water Share, and tenant Active columns, and creates a Payments sheet if absent. Existing cells and additional columns are preserved. This sheet is necessary to retain separate amounts and dates for multiple payments against the same bill.
+The existing Rooms, Tenants, and Billing sheets are preserved. On first upgrade, BoardEase copies the original workbook to a timestamped file in `backups/`, appends missing Bill ID and tenant Active columns, removes the unused Electricity Share and Water Share columns from earlier versions, and creates a Payments sheet if absent. Every column is saved 30.00 wide (about 215 pixels); Bill ID columns are 35.00. Existing cells and additional columns are preserved. This sheet is necessary to retain separate amounts and dates for multiple payments against the same bill.
 
 Legacy Amount Paid and status cells are preserved even if the old status incorrectly said PAID. Runtime balances and statuses are reconstructed from payment transactions, not these cached cells. A nonzero historical amount is imported once as **Legacy total**. The old file cannot tell us the individual payment dates/amounts behind that total; the available last date is retained. Existing unusual billing-period labels remain readable. New bills use a validated month. Backups are never overwritten.
 
@@ -52,7 +52,7 @@ Install or update the PDF dependency with:
 ReportLab is listed in `requirements.txt`. The PDF embeds Arial on Windows so the Philippine Peso symbol prints correctly. On Linux it can use DejaVu Sans; on macOS it can use Arial. A clear error is shown if no supported peso-capable font is installed.
 
 1. Open Reports and select a tenant and billing month. Only recorded billing months are available.
-2. Review the automatic statement preview. New bills retain separate electricity and water charges. Older bills show a combined Utilities line; no reconstruction or editable money fields are required.
+2. Review the automatic statement preview. Electricity and water are combined into one Utilities line; no reconstruction or editable money fields are required.
 3. Click **Generate PDF**. The result is saved under `reports/` beside the selected ledger, for example `Maria_Santos_Room102_2026-10_Billing.pdf`. Repeated generation adds `_2`, `_3`, etc. and preserves earlier PDFs.
 4. The success message shows the full saved path and enables **Open PDF** and **Print PDF**. Changing the tenant or month disables these actions until the new notice is generated.
 5. **Open PDF** uses the default Windows PDF viewer. **Print PDF** invokes the Windows `print` file action. Some PDF viewers send directly to the default printer; others show a print workflow. If the viewer has no print action, use Open PDF and Ctrl+P. The app reports dispatch, not physical printer completion.

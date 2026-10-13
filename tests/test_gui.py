@@ -73,6 +73,43 @@ class GuiWorkflowTests(unittest.TestCase):
         finally:
             root.destroy()
 
+    def test_transfer_and_remove_explain_why_nothing_happened(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = tk.Tk()
+            self.addCleanup(root.destroy)
+            app = BoardEaseApp(root, ledger_filepath=Path(directory) / 'ledger.xlsx')
+            room = SingleRoom('101', 100)
+            app.house.add_room(room)
+            app.house.add_tenant(Tenant('Maria Santos', '09170000001'), room)
+            app.show_page('Rooms & Tenants')
+            root.update()
+            with patch('gui_app.messagebox.showwarning') as warn:
+                app.transfer_tenant_dialog()
+                app.remove_tenant()
+                self.assertEqual(warn.call_count, 2)
+                self.assertIn('Select a tenant', warn.call_args[0][1])
+                app.tenants_table.selection_set('0')
+                self.assertIsNone(app.transfer_tenant_dialog())
+                self.assertIn('every other room is full', warn.call_args[0][1])
+            app.house.add_room(SingleRoom('102', 100))
+            app.show_page('Rooms & Tenants')
+            app.tenants_table.selection_set('0')
+            form = app.transfer_tenant_dialog()
+            form.submit()
+            self.assertEqual(app.house.tenants[0].assigned_room.room_number, '102')
+            app.tenants_table.selection_set('0')
+            with patch('gui_app.messagebox.askyesno', return_value=True), \
+                    patch.object(app.house.ledger, '_save', side_effect=PermissionError('locked')), \
+                    patch('gui_app.messagebox.showerror') as show_error:
+                app.remove_tenant()
+                self.assertIn('Close the Excel workbook', show_error.call_args[0][1])
+            self.assertEqual(len(app.house.tenants), 1)
+            app.tenants_table.selection_set('0')
+            with patch('gui_app.messagebox.askyesno', return_value=True):
+                app.remove_tenant()
+            self.assertEqual(app.house.tenants, [])
+            self.assertEqual([t.name for t in app.house.archived_tenants], ['Maria Santos'])
+
     def test_open_excel_capacity_choices_and_input_filters(self):
         with tempfile.TemporaryDirectory() as directory:
             root = tk.Tk()

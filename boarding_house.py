@@ -53,6 +53,7 @@ class BoardingHouse:
             raise ValueError('Name and contact number are required.')
         if log:
             tenant.contact_number = contact_number(tenant.contact_number)
+            self._check_contact_unused(tenant.contact_number)
         if self.find_tenant(tenant.name):
             raise ValueError('A tenant with this name already exists. Use a distinct full name.')
         if tenant.assigned_room is not None or len(room.tenants) >= room.get_max_occupancy():
@@ -64,6 +65,11 @@ class BoardingHouse:
     def find_room(self, room_number):
         return next((r for r in self.rooms if str(r.room_number).casefold() ==
                      str(room_number).strip().casefold()), None)
+
+    def _check_contact_unused(self, contact, tenant=None):
+        owner = next((t for t in self.all_tenants if t.contact_number == contact and t is not tenant), None)
+        if owner is not None:
+            raise ValueError(f'This contact number is already used by {owner.name}.')
 
     def find_tenant(self, name):
         return next((t for t in self.all_tenants if t.name.casefold() == str(name).strip().casefold()), None)
@@ -91,6 +97,7 @@ class BoardingHouse:
         if not name or not contact:
             raise ValueError('Name and contact number are required.')
         contact = contact_number(contact)
+        self._check_contact_unused(contact, tenant)
         existing = self.find_tenant(name)
         if existing is not None and existing is not tenant:
             raise ValueError('A tenant with this name already exists.')
@@ -140,8 +147,7 @@ class BoardingHouse:
                 raise ValueError(f"Bill refers to missing tenant {row['tenant_name']}.")
             self.bills.append(Bill(tenant, row['month'], row['rent_share'], row['utility_share'],
                                    row['due_date'], bill_id=row['bill_id'],
-                                   amount_paid=0, room_number=row['room_number'],
-                                   electricity_share=row['electricity_share'], water_share=row['water_share']))
+                                   amount_paid=0, room_number=row['room_number']))
         bills = {b.bill_id: b for b in self.bills}
         if len(bills) != len(self.bills):
             raise ValueError('Duplicate Bill IDs were found. Restore or review the ledger before continuing.')
@@ -164,8 +170,7 @@ class BoardingHouse:
             money(getattr(reading, field))
         if any(b.tenant in room.tenants and b.month[:7] == month for b in self.bills):
             raise ValueError('Bills already exist for a tenant in this room for that month.')
-        generated = [Bill(t, month, rent, money(electricity + water), due_date,
-                          electricity_share=electricity, water_share=water)
+        generated = [Bill(t, month, rent, money(electricity + water), due_date)
                      for t, (rent, electricity, water) in zip(room.tenants, reading.allocate_charges())]
         self.ledger.add_bills(generated)
         self.bills.extend(generated)

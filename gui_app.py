@@ -235,6 +235,11 @@ class BoardEaseApp:
     def refresh(self):
         self.show_page(self.current_page)
 
+    def _alert(self, title, message, error=False):
+        """Show the outcome in a popup and in the status line so it is not missed."""
+        self.notice.set(message)
+        (messagebox.showerror if error else messagebox.showwarning)(title, message, parent=self.root)
+
     @staticmethod
     def friendly_error(error):
         if isinstance(error, PermissionError):
@@ -426,7 +431,7 @@ class BoardEaseApp:
     def edit_room_dialog(self):
         selected = self.rooms_table.selection()
         if not selected:
-            self.notice.set('Select a room to edit.')
+            self._alert('Edit Room', 'Select a room in the Rooms table first, then click Edit Room.')
             return
         room = self.house.rooms[int(selected[0])]
         def save(values):
@@ -446,7 +451,7 @@ class BoardEaseApp:
     def edit_tenant_dialog(self):
         tenant = self._selected_tenant()
         if not tenant:
-            self.notice.set('Select a tenant to edit.')
+            self._alert('Edit Tenant', 'Select a tenant in the Tenants table first, then click Edit Tenant.')
             return
         def save(values):
             self.house.edit_tenant(tenant, values['name'], values['contact'])
@@ -458,11 +463,12 @@ class BoardEaseApp:
     def transfer_tenant_dialog(self):
         tenant = self._selected_tenant()
         if not tenant:
-            self.notice.set('Select a tenant to transfer.')
+            self._alert('Transfer Tenant', 'Select a tenant in the Tenants table first, then click Transfer.')
             return
         rooms = [r for r in self.house.rooms if r is not tenant.assigned_room and len(r.tenants)<r.get_max_occupancy()]
         if not rooms:
-            self.notice.set('No other rooms have an available space.')
+            self._alert('Transfer Tenant', f'{tenant.name} cannot be transferred because every other room is full. '
+                        'Add a room, raise a shared room\'s capacity, or remove a tenant first.')
             return
         choices = [f'{r.room_number} · {room_type(r)}' for r in rooms]
         def save(values):
@@ -474,7 +480,7 @@ class BoardEaseApp:
     def remove_tenant(self):
         tenant = self._selected_tenant()
         if not tenant:
-            self.notice.set('Select a tenant to remove.')
+            self._alert('Remove Tenant', 'Select a tenant in the Tenants table first, then click Remove.')
             return
         if not messagebox.askyesno('Remove tenant from room?',
                 f'Remove {tenant.name} from the active tenant list? Their bills and payments will be preserved.', parent=self.root):
@@ -482,7 +488,7 @@ class BoardEaseApp:
         try:
             self.house.remove_tenant(tenant)
         except (ValueError,OSError) as error:
-            self.notice.set(self.friendly_error(error))
+            self._alert('Tenant was not removed', self.friendly_error(error), error=True)
             return
         self.notice.set('Tenant removed from the room. Billing history has been preserved.')
         self.refresh()

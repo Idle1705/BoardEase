@@ -40,7 +40,7 @@ class ReportTests(unittest.TestCase):
         self.assertAlmostEqual(float(pdf.pages[0].mediabox.height), 841.89, places=1)
         content = pdf.pages[0].extract_text()
         for text in ('BoardEase', 'BILLING NOTICE', 'Maria Santos', 'October 2026', 'Monthly Rent',
-                     'Electricity', 'Water', '₱4,800.00', '₱3,800.00', 'PARTIAL',
+                     'Utilities', '₱4,800.00', '₱3,800.00', 'PARTIAL',
                      'Please settle your balance on or before the due date.',
                      'Prepared by: Boarding House Management', 'Tenant Signature:', 'Date Received:'):
             self.assertIn(text, content)
@@ -55,7 +55,7 @@ class ReportTests(unittest.TestCase):
         self.house.generate_bills_for_room(UtilityReading(room, '2026-11', 0, 0, 0, 0), '2099-11-30')
         other_room = SingleRoom('103', 9000)
         self.house.add_room(other_room)
-        self.house.add_tenant(Tenant('Other Tenant', '09170000123'), other_room)
+        self.house.add_tenant(Tenant('Other Tenant', '09170000201'), other_room)
         self.house.generate_bills_for_room(UtilityReading(other_room, '2026-09', 0, 0, 0, 0), '2026-09-30')
         content = PdfReader(self.generate()).pages[0].extract_text()
         self.assertIn('Previous Balance', content)
@@ -76,12 +76,12 @@ class ReportTests(unittest.TestCase):
     def test_bulk_one_page_per_billed_tenant_only(self):
         room = SingleRoom('103', 2000)
         self.house.add_room(room)
-        tenant = Tenant('Another Tenant', '09170000123')
+        tenant = Tenant('Another Tenant', '09170000202')
         self.house.add_tenant(tenant, room)
         self.house.generate_bills_for_room(UtilityReading(room, '2026-10', 0, 0, 0, 0), '2099-10-31')
         empty = SingleRoom('104', 1)
         self.house.add_room(empty)
-        self.house.add_tenant(Tenant('No Bill Yet', '09170000123'), empty)
+        self.house.add_tenant(Tenant('No Bill Yet', '09170000203'), empty)
         before = self.house.ledger.filepath.read_bytes()
         self.assertTrue(hasattr(reports, 'generate_monthly_bills_pdf'))
         output = reports.generate_monthly_bills_pdf(self.house, '2026-10')
