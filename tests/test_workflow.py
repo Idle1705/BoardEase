@@ -66,9 +66,9 @@ class WorkflowTests(unittest.TestCase):
         room = SharedRoom('S', 6000, 2)
         self.house.add_room(room)
         for name in ('One', 'Two'):
-            self.house.add_tenant(Tenant(name, '09170000123'), room)
+            self.house.add_tenant(Tenant(name, '0917000030' + str(len(room.tenants))), room)
         with self.assertRaises(ValueError):
-            self.house.add_tenant(Tenant('Three', '09170000123'), room)
+            self.house.add_tenant(Tenant('Three', '09170000309'), room)
         with self.assertRaises(ValueError):
             self.house.add_room(SharedRoom('bad', 100, 0))
         with self.assertRaises(ValueError):
@@ -93,9 +93,24 @@ class WorkflowTests(unittest.TestCase):
                 self.house.add_tenant(Tenant(f'Tenant {contact}', contact), room)
             with self.subTest(edit=contact), self.assertRaises(ValueError):
                 self.house.edit_tenant(self.tenant, self.tenant.name, contact)
-        self.house.add_tenant(Tenant('Valid Tenant', ' 09171234567 '), room)
-        self.assertEqual(self.reload().find_tenant('Valid Tenant').contact_number, '09171234567')
+        self.house.add_tenant(Tenant('Valid Tenant', ' 09179999999 '), room)
+        self.assertEqual(self.reload().find_tenant('Valid Tenant').contact_number, '09179999999')
         self.assertEqual(self.tenant.contact_number, '09171234567')
+
+    def test_contact_number_cannot_repeat(self):
+        room = SharedRoom('S', 6000, 3)
+        self.house.add_room(room)
+        with self.assertRaisesRegex(ValueError, 'Test Tenant'):
+            self.house.add_tenant(Tenant('Second Tenant', '09171234567'), room)
+        other = Tenant('Other Tenant', '09170000001')
+        self.house.add_tenant(other, room)
+        with self.assertRaisesRegex(ValueError, 'already used'):
+            self.house.edit_tenant(other, other.name, '09171234567')
+        self.house.edit_tenant(self.tenant, 'Test Tenant', '09171234567')
+        self.house.remove_tenant(self.tenant)
+        with self.assertRaises(ValueError):
+            self.house.add_tenant(Tenant('Returning Number', '09171234567'), room)
+        self.assertEqual(len(room.tenants), 1)
 
     def test_dates_and_months_require_exact_format(self):
         for value in ('2026/10/02', '20261002', '2026-10-2', '10-02-2026', '2026-13-01', '2026-02-30'):

@@ -25,12 +25,39 @@ class CleanupBackendTests(unittest.TestCase):
     def reload(self):
         return BoardingHouse(Owner('Owner', ''), self.path)
 
-    def test_utility_components_survive_restart(self):
-        self.assertEqual(getattr(self.bill, 'electricity_share', None), 30)
+    def test_utilities_are_stored_as_one_column_with_set_widths(self):
+        self.assertEqual(self.bill.utility_share, 60)
+        self.assertFalse(self.bill.has_utility_breakdown)
         bill = self.reload().bills[0]
-        self.assertEqual(bill.electricity_share, 30)
-        self.assertEqual(bill.water_share, 30)
+        self.assertEqual(bill.utility_share, 60)
         self.assertEqual(bill.get_total_amount(), 160)
+        workbook = load_workbook(self.path)
+        headers = [c.value for c in workbook['Billing'][1]]
+        self.assertNotIn('Electricity Share', headers)
+        self.assertNotIn('Water Share', headers)
+        for sheet in workbook:
+            for cell in sheet[1]:
+                with self.subTest(sheet=sheet.title, column=cell.value):
+                    width = sheet.column_dimensions[cell.column_letter].width
+                    self.assertEqual(width, 35 if cell.value == 'Bill ID' else 30)
+        workbook.close()
+
+    def test_upgrade_removes_old_electricity_and_water_columns(self):
+        workbook = load_workbook(self.path)
+        sheet = workbook['Billing']
+        sheet.cell(1, 13, 'Electricity Share')
+        sheet.cell(1, 14, 'Water Share')
+        sheet.cell(2, 13, None)
+        workbook.save(self.path)
+        workbook.close()
+        house = self.reload()
+        self.assertIsNotNone(house.ledger.backup_path)
+        workbook = load_workbook(self.path)
+        headers = [c.value for c in workbook['Billing'][1]]
+        self.assertEqual(headers[-1], 'Bill ID')
+        self.assertEqual(workbook['Billing'].cell(2, 12).value, self.bill.bill_id)
+        workbook.close()
+        self.assertEqual(house.bills[0].get_total_amount(), 160)
 
     def test_payment_transactions_are_source_of_total_after_restart(self):
         self.house.record_payment(self.bill, 20, '2026-10-02')
@@ -84,7 +111,7 @@ class CleanupBackendTests(unittest.TestCase):
 
     def test_migration_preserves_extra_columns_and_is_idempotent(self):
         workbook = load_workbook(self.path)
-        workbook['Billing'].delete_cols(12, 3)
+        workbook['Billing'].delete_cols(12)
         workbook['Tenants'].delete_cols(4)
         del workbook['Payments']
         workbook['Billing'].cell(1, 12, 'Owner Notes')
@@ -110,12 +137,11 @@ class CleanupBackendTests(unittest.TestCase):
         room = SharedRoom('S', 100, 3)
         self.house.add_room(room)
         for i in range(3):
-            self.house.add_tenant(Tenant(f'Shared {i}', '09170000123'), room)
+            self.house.add_tenant(Tenant(f'Shared {i}', f'0917000014{i}'), room)
         bills = self.house.generate_bills_for_room(UtilityReading(room, '2026-10', 1, 1, 1, 1), '2099-10-31')
         self.assertEqual(round(sum(b.get_total_amount() for b in bills), 2), 102)
         self.assertEqual(round(sum(b.rent_share for b in bills), 2), 100)
-        self.assertEqual(round(sum(b.electricity_share for b in bills), 2), 1)
-        self.assertEqual(round(sum(b.water_share for b in bills), 2), 1)
+        self.assertEqual(round(sum(b.utility_share for b in bills), 2), 2)
 
 
 if __name__ == '__main__':

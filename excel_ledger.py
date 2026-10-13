@@ -9,6 +9,7 @@ from pathlib import Path
 from uuid import uuid4
 from hashlib import sha256
 from openpyxl import Workbook, load_workbook
+from openpyxl.utils import get_column_letter
 from bill import money
 
 
@@ -17,10 +18,14 @@ class ExcelLedger:
     TENANT_HEADERS = ['Name', 'Contact Number', 'Room Number', 'Active']
     BILLING_HEADERS = ['Tenant', 'Room', 'Month', 'Rent Share', 'Utility Share',
                        'Total Amount', 'Due Date', 'Amount Paid', 'Date Paid',
-                       'Balance', 'Status', 'Bill ID', 'Electricity Share', 'Water Share']
+                       'Balance', 'Status', 'Bill ID']
     PAYMENT_HEADERS = ['Bill ID', 'Amount', 'Date Paid', 'Remaining Balance', 'Source']
     SCHEMA = {'Rooms': ROOM_HEADERS, 'Tenants': TENANT_HEADERS,
               'Billing': BILLING_HEADERS, 'Payments': PAYMENT_HEADERS}
+    # Columns from earlier versions that are removed when the ledger is upgraded.
+    OBSOLETE = {'Billing': ['Electricity Share', 'Water Share']}
+    # Excel column widths (character units): 30.00 is about 215 pixels; Bill ID needs more room.
+    COLUMN_WIDTH, WIDE_COLUMNS = 30, {'Bill ID': 35}
 
     def __init__(self, filepath='billing_ledger.xlsx'):
         self.filepath = Path(filepath).resolve()
@@ -43,9 +48,11 @@ class ExcelLedger:
             self.workbook.remove(self.workbook.active)
             for name, headers in self.SCHEMA.items():
                 self.workbook.create_sheet(name).append(headers)
-        needs_migration = exists and any(name not in self.workbook.sheetnames or
+        needs_migration = exists and (any(name not in self.workbook.sheetnames or
             any(header not in [c.value for c in self.workbook[name][1]] for header in headers)
-            for name, headers in self.SCHEMA.items())
+            for name, headers in self.SCHEMA.items()) or any(
+            header in [c.value for c in self.workbook[name][1]]
+            for name, headers in self.OBSOLETE.items() for header in headers))
         if needs_migration:
             directory = self.filepath.parent / 'backups'
             directory.mkdir(exist_ok=True)
@@ -77,6 +84,9 @@ class ExcelLedger:
             for header in headers:
                 if header not in existing:
                     sheet.cell(1, sheet.max_column + 1, header)
+            for header in self.OBSOLETE.get(name, []):
+                if header in existing:
+                    sheet.delete_cols([c.value for c in sheet[1]].index(header) + 1)
         self._bind_sheets()
         for row in range(2, self.tenants_sheet.max_row + 1):
             if self.tenants_sheet.cell(row, 1).value is not None:
@@ -108,6 +118,11 @@ class ExcelLedger:
                     cell = self.workbook[name].cell(row, self.columns[name][field])
                     if isinstance(cell.value, str):
                         cell.data_type = 's'
+        for name in self.SCHEMA:
+            for cell in self.workbook[name][1]:
+                if cell.value is not None:
+                    self.workbook[name].column_dimensions[get_column_letter(cell.column)].width = \
+                        self.WIDE_COLUMNS.get(cell.value, self.COLUMN_WIDTH)
         descriptor, filename = tempfile.mkstemp(suffix='.tmp', dir=self.filepath.parent)
         os.close(descriptor)
         try:
@@ -193,7 +208,7 @@ class ExcelLedger:
             for b in bills:
                 self._append('Billing', dict(zip(self.BILLING_HEADERS, [b.tenant.name, b.room_number, b.month,
                     b.rent_share, b.utility_share, b.get_total_amount(), b.due_date, b.amount_paid, '',
-                    b.balance, b.get_status(), b.bill_id, b.electricity_share, b.water_share])))
+                    b.balance, b.get_status(), b.bill_id])))
 
     def record_payment(self, bill, payment):
         with self._transaction():
@@ -210,7 +225,7 @@ class ExcelLedger:
 
     def load_bills(self):
         keys = ['tenant_name', 'room_number', 'month', 'rent_share', 'utility_share', 'total_amount',
-                'due_date', 'amount_paid', 'date_paid', 'balance', 'status', 'bill_id', 'electricity_share', 'water_share']
+                'due_date', 'amount_paid', 'date_paid', 'balance', 'status', 'bill_id']
         return [dict(zip(keys, [r[h] for h in self.BILLING_HEADERS])) for r in self._rows('Billing')]
 
     def load_payments(self):
