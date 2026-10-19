@@ -1,4 +1,4 @@
-"""BoardEase desktop dashboard. Run: python gui_app.py [--ledger path.xlsx]."""
+"""BoardEase desktop dashboard. Run: python src/gui_app.py [--ledger path.xlsx]."""
 import argparse
 import calendar
 import os
@@ -103,7 +103,7 @@ class BoardEaseApp:
         root.minsize(1100, 700)
         root.configure(bg=BG)
         self.owner = Owner('BoardEase', '')
-        default_ledger = Path(__file__).with_name('billing_ledger.xlsx')
+        default_ledger = Path(__file__).resolve().parent.parent / 'billing_ledger.xlsx'
         if ledger_filepath is None and not default_ledger.is_file():
             raise FileNotFoundError('billing_ledger.xlsx was not found. Restore your workbook or explicitly select a new ledger with --ledger.')
         self.house = BoardingHouse(self.owner, ledger_filepath or default_ledger)
