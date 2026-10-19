@@ -1,80 +1,120 @@
 # BoardEase
 
-A school-project boarding-house manager built with Python, standard Tkinter/ttk, openpyxl, and ReportLab. The original OOP classes remain the application model; records stay in `billing_ledger.xlsx`.
+**Smart Boarding House Billing and Tenant Manager**: a Python desktop app that helps a boarding-house landlord manage rooms, tenants, monthly bills and payments in one place.
 
-## Run on Windows
+BoardEase splits rent, electricity and water fairly among roommates, tracks full and partial payments, flags overdue bills, and prints an A4 billing notice for every tenant. All records are kept in an Excel file (`billing_ledger.xlsx`) that the landlord can open anytime.
+
+![BoardEase dashboard](docs/screenshots/dashboard.png)
+
+## Features
+
+| Feature | What it does |
+| --- | --- |
+| Rooms and tenants | Single rooms (1 tenant) and shared rooms (2–3 tenants); add, edit, transfer or remove tenants without losing billing history |
+| Fair bill splitting | Rent, electricity and water are divided equally among a room's current tenants, exact to the centavo |
+| Payment tracking | Full and partial payments, each saved with its date and the balance left after it |
+| Overdue checks | Bills past their due date with a balance are flagged **OVERDUE** automatically |
+| Billing notices | A printable A4 PDF notice per tenant, or one combined PDF for the whole month |
+| Excel records | Every change is saved safely to `billing_ledger.xlsx`, with automatic backups before upgrades |
+| Input validation | Dates in `YYYY-MM-DD`, 11-digit unique contact numbers, room capacity limits, no overpayments |
+
+## Screenshots
+
+| Rooms & Tenants | Billing |
+| --- | --- |
+| ![Rooms and Tenants](docs/screenshots/rooms-and-tenants.png) | ![Billing](docs/screenshots/billing.png) |
+| **Payments** | **Reports** |
+| ![Payments](docs/screenshots/payments.png) | ![Reports](docs/screenshots/reports.png) |
+
+Sample printed notice: [docs/screenshots/billing-notice.png](docs/screenshots/billing-notice.png)
+
+## Getting started (Windows)
+
+Requires Python 3.11 or newer.
 
 ```powershell
-cd path\to\BoardEase
+git clone https://github.com/Idle1705/BoardEase.git
+cd BoardEase
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe gui_app.py
+.\.venv\Scripts\python.exe src\gui_app.py
 ```
 
-The default ledger is beside `gui_app.py`, regardless of the terminal's working directory. To use a separate workbook (a new path starts empty):
+The app opens `billing_ledger.xlsx` in the project folder. To practice without touching the real records, use a separate workbook (a new path starts empty):
 
 ```powershell
-.\.venv\Scripts\python.exe gui_app.py --ledger C:\path\to\practice.xlsx
+.\.venv\Scripts\python.exe src\gui_app.py --ledger demo.xlsx
 ```
 
-Keep the workbook closed in Excel while saving changes. Run one BoardEase instance per workbook.
+Close the workbook in Excel before saving changes in BoardEase.
 
-## Pages
+## How to use it
 
-- **Dashboard:** room/tenant counts, paid/unpaid/overdue bills, totals, recent billing, quick actions, collection progress.
-- **Rooms & Tenants:** room and tenant tables with modal add/edit forms, room transfer, and tenant removal that archives billing history. Shared rooms hold 2 or 3 tenants (chosen from a dropdown). Contact numbers must be exactly 11 digits, such as `09171234567`, and cannot repeat another tenant's number; the field accepts digits only. Transfer, Remove, and Edit show a popup when no row is selected, no other room has space, or the workbook cannot be saved.
-- **Billing:** generate bills for all current occupants of a room; search tenant/room and filter All, Unpaid, Partial, Paid, or Overdue. Select a bill to see its full details or open payment entry.
-- **Payments:** selected-bill summary, partial/full payments, and persistent transaction history with the balance after each payment.
-- **Reports:** select a tenant and billing month, then use **Generate PDF**, **Open PDF**, or **Print PDF**. Notices are A4 portrait with dark text, simple borders, peso amounts, payment status, and signature/date-received lines for physical delivery. No tenant report is exported to Excel.
+1. **Rooms & Tenants**: add rooms with their rent and capacity, then add tenants to rooms with space.
+2. **Billing**: enter the month's electricity and water readings to generate bills for a room.
+3. **Payments**: record full or partial payments; the status updates to PAID, PARTIAL, UNPAID or OVERDUE.
+4. **Reports**: generate, open or print each tenant's A4 billing notice.
+5. **Dashboard**: see totals, collection progress and overdue bills at a glance.
 
-All amounts display Philippine pesos. Dates must be entered exactly as `YYYY-MM-DD` (for example `2026-10-31`), and new billing periods as `YYYY-MM`; these fields accept only digits and hyphens. The **Open Excel** button beside the data file name in the sidebar opens the ledger workbook in Excel for viewing. Close Excel before saving changes in BoardEase. Tables resize their columns to fit the window without horizontal scrollbars. Page scrolling appears only when content exceeds the available height; large tables receive a vertical scrollbar. The interface is checked at 1280 x 720, 1366 x 768, 1440 x 900, and 1920 x 1080.
+## Project structure
 
-## Payment and storage behavior
-
-A bill is paid only when its recorded payment total covers its bill total. An outstanding bill past its due date displays **OVERDUE**; otherwise a bill with some payment displays **PARTIAL**, and one with none displays **UNPAID**. The Unpaid filter includes every outstanding bill; Partial includes overdue bills with a partial payment. Dashboard totals cover all billing periods. Payment-history status describes the balance immediately after that transaction.
-
-The existing Rooms, Tenants, and Billing sheets are preserved. On first upgrade, BoardEase copies the original workbook to a timestamped file in `backups/`, appends missing Bill ID and tenant Active columns, removes the unused Electricity Share and Water Share columns from earlier versions, and creates a Payments sheet if absent. Every column is saved 30.00 wide (about 215 pixels); Bill ID columns are 35.00. Existing cells and additional columns are preserved. This sheet is necessary to retain separate amounts and dates for multiple payments against the same bill.
-
-Legacy Amount Paid and status cells are preserved even if the old status incorrectly said PAID. Runtime balances and statuses are reconstructed from payment transactions, not these cached cells. A nonzero historical amount is imported once as **Legacy total**. The old file cannot tell us the individual payment dates/amounts behind that total; the available last date is retained. Existing unusual billing-period labels remain readable. New bills use a validated month. Backups are never overwritten.
-
-Writes use a temporary workbook and atomic replacement. If another program changes the workbook, saving is rejected until the application restarts so those changes cannot be overwritten. A failed save rolls back pending workbook and domain changes. Payment amounts must be positive and cannot exceed the balance. Duplicate room numbers, tenant names, and tenant/month bills are rejected. Tenant names must be distinct because the original workbook identifies tenants by name.
-
-The Owner badge and Send Reminders control have been removed. Notification simulation remains available only in the backend and console demonstration. Normal desktop startup opens the real billing_ledger.xlsx; it never seeds demo data or silently replaces a missing default workbook.
-
-## Printable tenant notices
-
-Install or update the PDF dependency with:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+BoardEase/
+├── src/
+│   ├── gui_app.py          # Tkinter desktop app (the 5 pages and forms)
+│   ├── ui_components.py    # Shared buttons, badges and colors
+│   ├── boarding_house.py   # BoardingHouse: the controller that applies every rule
+│   ├── person.py           # Person (abstract)
+│   ├── owner.py            # Owner(Person)
+│   ├── tenant.py           # Tenant(Person)
+│   ├── room.py             # Room (abstract)
+│   ├── single_room.py      # SingleRoom(Room): 1 tenant
+│   ├── shared_room.py      # SharedRoom(Room): 2–3 tenants
+│   ├── utility_reading.py  # UtilityReading: splits a room's charges
+│   ├── bill.py             # Bill, BillingStatement and input validation
+│   ├── payment.py          # Payment
+│   ├── notification.py     # Reminder and overdue messages (simulated)
+│   ├── excel_ledger.py     # ExcelLedger: safe reading and writing of the workbook
+│   ├── reports.py          # A4 PDF billing notices
+│   └── main.py             # Console demo of the OOP classes
+├── tests/                  # 34 automated tests (unittest, run with pytest)
+├── docs/
+│   ├── screenshots/        # App screenshots used in this README
+│   └── data-and-reports.md # How the ledger, backups and PDF notices work
+├── billing_ledger.xlsx     # The landlord's records
+├── requirements.txt        # openpyxl, reportlab
+├── requirements-dev.txt    # pypdf, pytest (for tests)
+└── pytest.ini
 ```
 
-ReportLab is listed in `requirements.txt`. The PDF embeds Arial on Windows so the Philippine Peso symbol prints correctly. On Linux it can use DejaVu Sans; on macOS it can use Arial. A clear error is shown if no supported peso-capable font is installed.
+## OOP principles
 
-1. Open Reports and select a tenant and billing month. Only recorded billing months are available.
-2. Review the automatic statement preview. Electricity and water are combined into one Utilities line; no reconstruction or editable money fields are required.
-3. Click **Generate PDF**. The result is saved under `reports/` beside the selected ledger, for example `Maria_Santos_Room102_2026-10_Billing.pdf`. Repeated generation adds `_2`, `_3`, etc. and preserves earlier PDFs.
-4. The success message shows the full saved path and enables **Open PDF** and **Print PDF**. Changing the tenant or month disables these actions until the new notice is generated.
-5. **Open PDF** uses the default Windows PDF viewer. **Print PDF** invokes the Windows `print` file action. Some PDF viewers send directly to the default printer; others show a print workflow. If the viewer has no print action, use Open PDF and Ctrl+P. The app reports dispatch, not physical printer completion.
+| Principle | Where it is used |
+| --- | --- |
+| Abstraction | `Person` and `Room` are abstract classes (`ABC`); only their subclasses can be created |
+| Inheritance | `Owner` and `Tenant` extend `Person`; `SingleRoom` and `SharedRoom` extend `Room` |
+| Polymorphism | `get_max_occupancy()` returns 1 for a `SingleRoom` and 2–3 for a `SharedRoom`; `get_role()` differs for `Owner` and `Tenant` |
+| Encapsulation | `Bill` computes its own balance and status; only `ExcelLedger` reads and writes the Excel file |
+| Composition | `BoardingHouse` holds the rooms, bills, payments and one `ExcelLedger` |
 
-Use **Generate All Bills for Month** to produce a combined file such as `October_2026_Tenant_Bills.pdf`. Each billed tenant gets one A4 page, ordered by room. Tenants without a bill for that month are excluded. The same Open PDF and Print PDF controls operate on the newly generated file.
-
-The notice includes the selected bill's rent, stored utility breakdown, recorded amount paid, and remaining balance. Other charges are omitted because the current model has no such charges. Unpaid earlier months are shown as Previous Balance; future months and other tenants are excluded. Total Amount Due is the selected bill's remaining balance plus these earlier balances. Payment status reflects all balances included in the notice, so an older overdue balance can make the notice OVERDUE even when the selected month's bill is paid. Previous balances are a current snapshot, not a historical reconstruction.
-
-PDF generation is read-only with respect to `billing_ledger.xlsx` and the in-memory bills/payments. Excel remains data storage only. Existing legacy month labels such as `2026-10-10` are offered as October 2026; ambiguous duplicate bills for a tenant/month are rejected instead of silently choosing one.
-
-## Verify
+## Running the tests
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-.\.venv\Scripts\python.exe -m compileall -q bill.py payment.py boarding_house.py excel_ledger.py gui_app.py ui_components.py reports.py notification.py main.py
+.\.venv\Scripts\python.exe -m pytest
 ```
 
-The GUI test needs a desktop display. It opens Tk windows and exercises forms, payment progression, restart, filters, search, PDF generation/open/print dispatch, empty pages, long names, and resizing. All tests use temporary workbooks, including a copy of the supplied ledger. The repository's original ledger is not used for test writes.
+The tests cover billing rules, payments, validation, the Excel ledger and backups, PDF notices, and the desktop screens at four window sizes. Every test uses a temporary workbook, so the real `billing_ledger.xlsx` is never changed. The GUI tests need a desktop display.
 
-`python main.py` still runs the OOP console demonstration, now against a temporary workbook so repeated demos cannot modify the owner's records.
+To see the OOP classes work without the GUI, run `python src\main.py` (it uses a temporary workbook).
 
-PDF tests use pypdf from `requirements-dev.txt` to verify A4 size, text, totals, peso glyphs, selection, and unchanged ledger bytes. The print dispatch is mocked during automated tests; no paper is printed.
+## Tech stack
 
-No web server, database, pandas, or CustomTkinter is required.
+Python 3 · Tkinter/ttk · openpyxl · ReportLab · unittest/pytest · pypdf
+
+## Team
+
+| Member | Role |
+| --- | --- |
+| Roger Alfonso Mancera | Front end, back end, UI/UX |
+| Irwen Nulla | Project manager, system manager, system tester |
