@@ -1,12 +1,13 @@
 "use client";
 
-import { forwardRef, useState } from "react";
+import { forwardRef, useRef, useState } from "react";
 import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { formatPeso } from "@/lib/format";
 import { formatKm } from "@/lib/geo";
 import { PROPERTY_TYPE_LABEL } from "@/lib/listing-types";
 import type { ListingResult } from "@/lib/search";
+import { setMorphSource } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { DemoBadge, FavoriteButton } from "./bits";
 
@@ -24,10 +25,12 @@ export const ListingCard = forwardRef<HTMLLIElement, Props>(function ListingCard
   ref,
 ) {
   const [broken, setBroken] = useState(false);
+  const media = useRef<HTMLDivElement>(null);
   const photo = listing.photos[0];
   return (
     <li
       ref={ref}
+      data-flip-id={listing.id}
       className={cn("group/card relative snap-start", layout === "rail" ? "w-[232px] shrink-0" : "w-full", className)}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
@@ -35,17 +38,17 @@ export const ListingCard = forwardRef<HTMLLIElement, Props>(function ListingCard
       <div
         className={cn(
           "relative flex h-full flex-col overflow-hidden rounded-lg bg-white shadow-sm transition-[box-shadow,transform] duration-200 ease-[var(--ease-out-soft)]",
-          "group-hover/card:-translate-y-0.5 group-hover/card:shadow-md",
-          selected && "shadow-md ring-2 ring-ink",
+          "group-hover/card:-translate-y-0.5 group-hover/card:shadow-md group-active/card:scale-[0.98]",
+          selected && "shadow-md ring-2 ring-clay",
         )}
       >
-        <div className={cn("relative overflow-hidden bg-surface", layout === "rail" ? "aspect-[3/2]" : "aspect-[16/10]")}>
+        <div ref={media} data-card-media className={cn("relative overflow-hidden bg-surface", layout === "rail" ? "aspect-[16/10]" : "aspect-[16/10]")}>
           {photo && !broken ? (
             <Image
               src={`${photo.src}.webp`}
               alt={photo.alt}
               fill
-              sizes={layout === "rail" ? "232px" : "(min-width: 768px) 50vw, 100vw"}
+              sizes={layout === "rail" ? "232px" : "(min-width: 1024px) 340px, (min-width: 768px) 50vw, 100vw"}
               className="object-cover transition-transform duration-300 ease-[var(--ease-out-soft)] group-hover/card:scale-[1.03]"
               onError={() => setBroken(true)}
             />
@@ -63,10 +66,13 @@ export const ListingCard = forwardRef<HTMLLIElement, Props>(function ListingCard
             <span className="text-footnote font-normal text-subtle"> / month</span>
           </p>
           {/* The title is the card's one link-like target; the overlay button makes the whole card clickable */}
-          <h3 className="truncate text-body font-medium text-ink">
+          <h3 className="line-clamp-2 text-body leading-snug font-medium text-ink">
             <button
               type="button"
-              onClick={onSelect}
+              onClick={() => {
+                if (!selected) setMorphSource(listing.id, media.current?.querySelector("img") ?? null);
+                onSelect();
+              }}
               onFocus={() => onHover(true)}
               onBlur={() => onHover(false)}
               aria-pressed={selected}

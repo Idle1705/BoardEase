@@ -318,8 +318,8 @@ function ChoiceChip({
       aria-pressed={role ? undefined : active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-footnote font-medium transition-colors duration-150",
-        active ? "bg-ink text-white" : "bg-surface text-ink hover:bg-surface-2",
+        "inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-footnote font-medium transition-[color,background-color,transform] duration-150 active:scale-[0.97]",
+        active ? "bg-clay-soft text-clay-hover ring-1 ring-clay/45" : "bg-surface text-ink hover:bg-surface-2",
       )}
     >
       {active && <Check className="size-3.5" strokeWidth={2.4} />}
@@ -332,7 +332,7 @@ function ChoiceChip({
 
 const chipClass = (changed: boolean) =>
   cn(
-    "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-footnote font-medium shadow-md ring-1 transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-brand",
+    "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-footnote font-medium shadow-md ring-1 transition-[color,background-color,transform] duration-150 active:scale-[0.97] outline-none focus-visible:ring-2 focus-visible:ring-brand",
     changed ? "bg-brand-soft text-brand ring-brand/25 hover:bg-[#dcece6]" : "bg-white text-ink ring-black/5 hover:bg-surface",
   );
 

@@ -1,55 +1,37 @@
-import Link from "next/link";
-import { ContentPage } from "@/components/content-page";
+import { FinalCta, HowItWorks } from "@/components/landing/landing-page";
+import { SiteFooter } from "@/components/site-footer";
 
 export const metadata = { title: "How it works" };
 
-const renterSteps = [
-  ["Search near where you study or work", "Type a school, mall or barangay. BoardEase draws your distance limit on the map."],
-  ["Compare rent, distance and bills", "Each listing shows the monthly rent, what the bills cover and how far it is from your search."],
-  ["Save, then ask for a viewing", "Keep a shortlist, then message owners and agree a viewing. The exact address is shared after that."],
-];
-
-const ownerSteps = [
-  ["Add your property and rooms", "Bedspaces, shared rooms, private rooms or whole units, each with its own rent and capacity."],
-  ["Publish listings with photos", "Choose what renters see. The map shows only the approximate area until you share the address."],
-  ["Run the boarding house", "Track tenants, split rent and utilities per room, record payments and see overdue balances."],
-];
-
-export default function HowItWorks() {
+export default function HowItWorksPage() {
   return (
-    <ContentPage
-      title="How BoardEase works"
-      intro="One place for renters to find a room in Davao City, and for owners to fill rooms and keep the billing straight."
-    >
-      <Steps heading="If you are looking for a room" steps={renterSteps} />
-      <Steps heading="If you rent out rooms" steps={ownerSteps} />
-      <p>
-        BoardEase is in development. The listings on the map today are demonstrations.{" "}
-        <Link href="/" className="font-medium text-ink underline underline-offset-2">
-          Try the search
-        </Link>
-      </p>
-    </ContentPage>
-  );
-}
-
-function Steps({ heading, steps }: { heading: string; steps: string[][] }) {
-  return (
-    <section>
-      <h2 className="text-title3 font-semibold text-ink">{heading}</h2>
-      <ol className="mt-4 flex flex-col gap-4">
-        {steps.map(([t, d], i) => (
-          <li key={t} className="flex gap-4">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-footnote font-semibold text-ink">
-              {i + 1}
-            </span>
-            <span>
-              <span className="block font-medium text-ink">{t}</span>
-              {d}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <main id="main" className="flex-1 overflow-y-auto overflow-x-clip bg-porcelain">
+      {/* One daylight field behind the title and the steps, so the light never ends in a seam */}
+      <div className="be-daylight">
+      <header>
+        <div className="mx-auto max-w-[1240px] px-5 pt-16 pb-14 sm:px-8 sm:pt-20 lg:px-10">
+          <h1 className="max-w-[16ch] font-display text-display font-semibold text-balance text-ink">How BoardEase works</h1>
+          <p className="mt-6 max-w-[40rem] text-lead text-ink-2">
+            One place for renters to find a room in Davao City, and for owners to fill rooms and keep track of every bed.
+          </p>
+        </div>
+      </header>
+      <HowItWorks titled={false} />
+      </div>
+      <section aria-labelledby="privacy-title" className="bg-white">
+        <div className="mx-auto grid max-w-[1240px] gap-8 px-5 py-20 sm:px-8 lg:grid-cols-12 lg:px-10">
+          <h2 id="privacy-title" className="font-display text-section font-semibold text-balance text-ink lg:col-span-5">
+            What stays private
+          </h2>
+          <div className="flex flex-col gap-4 text-prose text-ink-2 lg:col-span-6 lg:col-start-7">
+            <p>The map shows only the approximate area of a room. The exact address is shared after a viewing is agreed.</p>
+            <p>Tenant names, contact numbers, bills and payments are visible to the owner alone.</p>
+            <p className="text-body text-subtle">BoardEase is in development. The listings on the map today are demonstrations.</p>
+          </div>
+        </div>
+      </section>
+      <FinalCta />
+      <SiteFooter />
+    </main>
   );
 }

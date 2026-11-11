@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Info, List, Map as MapIcon, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info, List, Map as MapIcon, SlidersHorizontal, X } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -12,6 +12,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { distanceKm, type LngLat } from "@/lib/geo";
 import { formatPeso } from "@/lib/format";
 import { DEFAULT_FILTERS, filtersToParams, parseFilters, searchListings, type Filters } from "@/lib/search";
+import { EASE_MOVE, EASE_OUT, Flip, gsap, reducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { FeaturedListing } from "./featured-listing";
 import {
@@ -40,6 +41,47 @@ export function ExploreView() {
   const { saved } = useFavorites();
   const isDesktop = useMediaQuery("(min-width: 1024px)", true);
 
+  // Phone/tablet Map <-> List: the new view is revealed by a circle growing from the tapped tab
+  // (motion #17 masks + #11 enter from the trigger). The old view stays visible underneath until it ends.
+  const [leaving, setLeaving] = useState<"map" | "list" | null>(null);
+  const mapSection = useRef<HTMLElement>(null);
+  const listSection = useRef<HTMLElement>(null);
+  const tabs = useRef<HTMLDivElement>(null);
+  const switchView = (v: "map" | "list") => {
+    if (v === view) return;
+    if (!isDesktop && !reducedMotion()) setLeaving(view);
+    setView(v);
+  };
+  useLayoutEffect(() => {
+    if (!leaving) return;
+    const el = view === "map" ? mapSection.current : listSection.current;
+    const tab = tabs.current?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!el || !tab) {
+      setLeaving(null);
+      return;
+    }
+    const b = el.getBoundingClientRect();
+    const t = tab.getBoundingClientRect();
+    const x = t.left + t.width / 2 - b.left;
+    const y = t.top + t.height / 2 - b.top;
+    const r = Math.hypot(Math.max(x, b.width - x), Math.max(y, b.height - y));
+    const tween = gsap.fromTo(
+      el,
+      { clipPath: `circle(0px at ${x}px ${y}px)` },
+      {
+        clipPath: `circle(${r}px at ${x}px ${y}px)`,
+        duration: 0.5,
+        ease: EASE_OUT,
+        clearProps: "clipPath",
+        onComplete: () => setLeaving(null),
+      },
+    );
+    return () => {
+      tween.kill();
+      gsap.set(el, { clearProps: "clipPath" });
+    };
+  }, [view, leaving]);
+
   // Keep the URL in step with the search so it can be shared or reloaded
   useEffect(() => {
     const p = filtersToParams(filters, selectedId);
@@ -51,17 +93,115 @@ export function ExploreView() {
     }
   }, [filters, selectedId, view]);
 
-  const setFilters = useCallback((patch: Partial<Filters>) => {
-    setFiltersState((f) => ({ ...f, ...patch }));
+  // Before a filter change, remember where every visible card sits so Flip can show what moved
+  const flipState = useRef<Flip.FlipState | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const captureFlip = useCallback(() => {
+    const cards = [...(panelRef.current?.querySelectorAll<HTMLElement>("[data-flip-id]") ?? [])].filter((el) => el.offsetParent);
+    flipState.current = cards.length && !reducedMotion() ? Flip.getState(cards) : null;
   }, []);
+  const setFilters = useCallback(
+    (patch: Partial<Filters>) => {
+      captureFlip();
+      setFiltersState((f) => ({ ...f, ...patch }));
+    },
+    [captureFlip],
+  );
 
   const centre = useMemo(() => ({ lat: filters.lat, lng: filters.lng }), [filters.lat, filters.lng]);
   const { results, outsideRadius, overBudget } = useMemo(() => searchListings(DEMO_LISTINGS, filters), [filters]);
 
-  const featured = results.find((r) => r.id === selectedId) ?? results[0] ?? null;
-  const activeId = featured?.id ?? null;
+  useLayoutEffect(() => {
+    const state = flipState.current;
+    flipState.current = null;
+    if (!state || !panelRef.current) return;
+    const targets = [...panelRef.current.querySelectorAll<HTMLElement>("[data-flip-id]")].filter((el) => el.offsetParent);
+    const tl = Flip.from(state, {
+      targets,
+      duration: 0.45,
+      ease: EASE_MOVE,
+      onEnter: (els) => gsap.fromTo(els, { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.4, ease: EASE_OUT, stagger: 0.03 }),
+    });
+    return () => {
+      tl.progress(1).kill();
+    };
+  }, [results]);
 
-  const select = useCallback((id: string) => setSelectedId(id), []);
+  // Nothing is picked until someone presses a price on the map (or "Show list");
+  // on desktop that opens the floating listing panel over the map
+  const featured = results.find((r) => r.id === selectedId) ?? null;
+  const activeId = featured?.id ?? null;
+  const [entered, setEntered] = useState(false);
+  const select = useCallback((id: string) => {
+    setEntered(true);
+    setSelectedId(id);
+  }, []);
+
+  const panelBox = useRef<HTMLElement>(null);
+  const showListButton = useRef<HTMLButtonElement>(null);
+  const panelOpen = isDesktop && !!featured;
+  const [panelW, setPanelW] = useState(0);
+
+  // The panel's width tells the map how much of it is covered
+  useLayoutEffect(() => {
+    const el = panelBox.current;
+    if (!panelOpen || !el) {
+      setPanelW(0);
+      return;
+    }
+    const ro = new ResizeObserver(() => setPanelW(el.offsetWidth));
+    ro.observe(el);
+    setPanelW(el.offsetWidth);
+    return () => ro.disconnect();
+  }, [panelOpen]);
+
+  // Panel entrance: slides 24px in from the right edge and fades (fade only for reduced motion)
+  const wasOpen = useRef(false);
+  useLayoutEffect(() => {
+    const el = panelBox.current;
+    if (panelOpen && !wasOpen.current && entered && el) {
+      const reduce = reducedMotion();
+      gsap.fromTo(
+        el,
+        { opacity: 0, x: reduce ? 0 : 24 },
+        { opacity: 1, x: 0, duration: reduce ? 0.15 : 0.32, ease: EASE_OUT, clearProps: "transform,opacity" },
+      );
+    }
+    wasOpen.current = panelOpen;
+  }, [panelOpen, entered]);
+
+  const closePanel = useCallback(
+    (returnFocus: boolean) => {
+      const id = selectedId;
+      const finish = () => {
+        setSelectedId(null);
+        // Focus goes back to the pin that opened the panel, or to "Show list"
+        if (returnFocus)
+          requestAnimationFrame(() => {
+            const pin = id ? document.querySelector<HTMLElement>(`.maplibregl-map [data-listing-id="${id}"]`) : null;
+            (pin ?? showListButton.current)?.focus();
+          });
+      };
+      const box = panelBox.current;
+      if (!box || reducedMotion()) return finish();
+      // Leaves the way it came in, a little faster
+      gsap.to(box, { opacity: 0, x: 16, duration: 0.18, ease: EASE_OUT, onComplete: finish });
+    },
+    [selectedId],
+  );
+
+  // Esc closes the panel, unless a dialog, menu or text field is using the key
+  useEffect(() => {
+    if (!panelOpen || detailsOpen || contactOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const t = e.target instanceof Element ? e.target : null;
+      if (t?.closest("input, textarea, select, [role=menu], [role=listbox], [role=dialog]")) return;
+      closePanel(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [panelOpen, detailsOpen, contactOpen, closePanel]);
 
   // Suggestions for an empty or short result list, from the real data only
   const widen = useMemo(() => {
@@ -111,7 +251,6 @@ export function ExploreView() {
     (filters.type !== DEFAULT_FILTERS.type ? 1 : 0) +
     (filters.sort !== DEFAULT_FILTERS.sort ? 1 : 0);
 
-  const countLine = `${results.length} demo ${results.length === 1 ? "listing" : "listings"} within ${filters.radiusKm} km`;
 
   const mobileFilters = (
     <Sheet>
@@ -161,14 +300,34 @@ export function ExploreView() {
   );
 
   return (
-    <main id="main" className="relative min-h-0 flex-1 lg:grid lg:grid-cols-2">
+    <main id="main" className="relative min-h-0 flex-1">
       <h1 className="sr-only">Rooms for rent near {filters.place}</h1>
 
       {/* ---------- Map ---------- */}
       <section
-        aria-label="Map"
-        className={cn("absolute inset-0 lg:relative lg:block", view === "map" ? "block" : "hidden")}
+        ref={mapSection}
+        aria-label="Map and search"
+        className={cn(
+          "absolute inset-0 lg:block",
+          view === "map" || leaving === "map" ? "block" : "hidden",
+          leaving && (view === "map" ? "z-20" : "z-0"),
+        )}
       >
+        {/* Floating search and filters: first in the DOM so Tab reaches search before the map pins */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-3 p-4 lg:p-5">
+          <div className="pointer-events-auto flex gap-2">
+            <LocationSearch
+              className="min-w-0 flex-1 lg:max-w-[440px]"
+              value={filters.place}
+              onPick={({ label, lat, lng }) => setFilters({ place: label, lat, lng })}
+            />
+            <div className="lg:hidden">{mobileFilters}</div>
+          </div>
+          <div className="pointer-events-auto hidden lg:block">
+            <FilterChips filters={filters} set={setFilters} />
+          </div>
+        </div>
+
         <MapView
           centre={centre}
           radiusKm={filters.radiusKm}
@@ -184,22 +343,8 @@ export function ExploreView() {
           locating={locating}
           topInset={isDesktop ? 130 : 84}
           bottomInset={!isDesktop && view === "map" ? 330 : 8}
+          rightInset={panelOpen && panelW ? panelW + 20 : 0}
         />
-
-        {/* Floating search and filters */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-3 p-4 lg:p-5">
-          <div className="pointer-events-auto flex gap-2">
-            <LocationSearch
-              className="min-w-0 flex-1 lg:max-w-[440px]"
-              value={filters.place}
-              onPick={({ label, lat, lng }) => setFilters({ place: label, lat, lng })}
-            />
-            <div className="lg:hidden">{mobileFilters}</div>
-          </div>
-          <div className="pointer-events-auto hidden lg:block">
-            <FilterChips filters={filters} set={setFilters} />
-          </div>
-        </div>
 
         {/* Phone and tablet map: a rail of results above the switch */}
         {view === "map" && (
@@ -224,17 +369,97 @@ export function ExploreView() {
         )}
       </section>
 
-      {/* ---------- Discovery panel ---------- */}
+      {/* ---------- Desktop: floating listing panel over the map ---------- */}
+      {isDesktop && results.length > 0 && !featured && (
+        <div className="absolute top-5 right-5 z-30 hidden w-[268px] rounded-[22px] bg-white p-4 shadow-lg ring-1 ring-black/5 lg:block">
+          <p className="text-callout font-semibold text-ink" aria-live="polite">
+            <AnimatedCount value={results.length} /> demo {results.length === 1 ? "listing" : "listings"} within {filters.radiusKm} km
+          </p>
+          <p className="mt-1 text-footnote text-subtle">
+            Press a price on the map to see the room. Demo listings, not for rent (<Link href="/credits" className="underline hover:text-ink">credits</Link>).
+          </p>
+          <button
+            ref={showListButton}
+            type="button"
+            onClick={() => select(results[0].id)}
+            className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-clay text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]"
+          >
+            <List className="size-4" />
+            Show list
+          </button>
+        </div>
+      )}
+
+      {isDesktop && results.length === 0 && (
+        <aside aria-label="No results" className="absolute top-5 right-5 z-30 hidden w-[400px] rounded-[28px] bg-white p-5 shadow-xl ring-1 ring-black/5 lg:block">
+          <EmptyState
+            inPanel
+            filters={filters}
+            nextKm={widen.nextKm}
+            nextBudget={widen.nextBudget}
+            outsideRadius={outsideRadius}
+            overBudget={overBudget}
+            onWiden={(radiusKm) => setFilters({ radiusKm })}
+            onRaise={(budget) => setFilters({ budget })}
+            onReset={() => setFilters({ ...DEFAULT_FILTERS })}
+          />
+        </aside>
+      )}
+
+      {panelOpen && featured && (
+        <aside
+          ref={panelBox}
+          aria-label={`Listing: ${featured.title}`}
+          className="absolute top-5 right-5 z-30 hidden max-h-[calc(100%-40px)] w-[min(640px,calc(50vw-24px))] flex-col gap-4 lg:flex overflow-y-auto overscroll-contain rounded-[28px] bg-white p-3 shadow-xl ring-1 ring-black/5"
+        >
+          <button
+            type="button"
+            aria-label="Close listing panel"
+            onClick={() => closePanel(true)}
+            className="absolute top-3 right-3 z-10 grid size-10 place-items-center rounded-full bg-surface text-ink transition-[background-color,scale] duration-150 hover:bg-surface-2 active:scale-[0.97]"
+          >
+            <X className="size-5" strokeWidth={1.9} />
+          </button>
+
+          <FeaturedListing
+            listing={featured}
+            enter={entered}
+            onClose={() => closePanel(true)}
+            onDetails={() => setDetailsOpen(true)}
+            onContact={() => setContactOpen(true)}
+          />
+
+          <div className="flex items-center justify-between gap-3 border-t border-hairline px-1 pt-3">
+            <h2 className="text-body font-semibold text-ink" aria-live="polite">
+              <AnimatedCount value={results.length} /> demo {results.length === 1 ? "listing" : "listings"} within {filters.radiusKm} km
+            </h2>
+            <SortMenu value={filters.sort} onChange={(sort) => setFilters({ sort })} />
+          </div>
+
+          <ListingRail results={results} activeId={activeId} onSelect={select} onHover={setHoveredId} />
+
+          <p className="flex items-start gap-1.5 px-1 pb-1 text-caption text-warn">
+            <Info className="mt-px size-3.5 shrink-0" />
+            <span>
+              Demo listings: examples of how BoardEase works, not for rent. Photos are stand-ins (<Link href="/credits" className="underline hover:text-ink">credits</Link>).
+            </span>
+          </p>
+        </aside>
+      )}
+
+      {/* ---------- Phone and tablet list ---------- */}
       <section
-        aria-label="Listings"
+        ref={listSection}
+        aria-label="Results"
         className={cn(
-          "h-full overflow-y-auto bg-white lg:block lg:border-l lg:border-hairline",
-          view === "list" ? "block" : "hidden",
+          "h-full overflow-y-auto bg-white lg:hidden",
+          view === "list" || leaving === "list" ? "block" : "hidden",
+          leaving && (view === "list" ? "relative z-20" : "z-0"),
         )}
       >
-        <div className="mx-auto flex max-w-[760px] flex-col gap-4 px-4 pt-4 pb-28 sm:px-6 lg:px-7 lg:pt-5 lg:pb-6">
+        <div ref={panelRef} className="mx-auto flex max-w-[760px] flex-col gap-4 px-4 pt-4 pb-28 sm:px-6">
           {/* Search on phone/tablet list view */}
-          <div className="flex gap-2 lg:hidden">
+          <div className="flex gap-2">
             <LocationSearch
               className="min-w-0 flex-1"
               value={filters.place}
@@ -246,30 +471,21 @@ export function ExploreView() {
           <p className="flex items-start gap-2 rounded-md bg-[#fdf6e7] px-3 py-2 text-footnote text-warn">
             <Info className="mt-0.5 size-4 shrink-0" />
             <span>
-              <span className="font-semibold">Demo listings.</span> These rooms are examples that show how BoardEase works. They are not for rent.
+              <span className="font-semibold">Demo listings.</span> Examples that show how BoardEase works; not for rent. Photos are stand-ins of other places (<Link href="/credits" className="underline hover:text-ink">credits</Link>).
             </span>
           </p>
 
-          {featured ? (
+          {results.length ? (
             <>
-              {/* Desktop: featured listing on top, rail below */}
-              <div className="hidden lg:block">
-                <FeaturedListing listing={featured} onDetails={() => setDetailsOpen(true)} onContact={() => setContactOpen(true)} />
-              </div>
-
-              <div className="flex items-center justify-between gap-3 lg:mt-1">
+              <div className="flex items-center justify-between gap-3">
                 <h2 className="text-body font-semibold text-ink sm:text-callout" aria-live="polite">
-                  {countLine}
+                  <AnimatedCount value={results.length} /> demo {results.length === 1 ? "listing" : "listings"} within {filters.radiusKm} km
                 </h2>
                 <SortMenu value={filters.sort} onChange={(sort) => setFilters({ sort })} />
               </div>
 
-              <div className="hidden lg:block">
-                <ListingRail results={results} activeId={activeId} onSelect={select} onHover={setHoveredId} />
-              </div>
-
               {/* Phone/tablet list */}
-              <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:hidden">
+              <ul className="grid grid-cols-1 gap-4 md:grid-cols-2" aria-label="Listings">
                 {results.map((r) => (
                   <ListingCard
                     key={r.id}
@@ -298,18 +514,18 @@ export function ExploreView() {
             />
           )}
 
-          <p className="text-caption text-subtle">
-            Photos are licensed stand-ins from Wikimedia Commons and show other places.{" "}
-            <Link href="/credits" className="underline underline-offset-2 hover:text-ink">
-              Photo credits
-            </Link>
-          </p>
         </div>
       </section>
 
       {/* ---------- Map / List switch (phone and tablet) ---------- */}
       <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center lg:hidden">
-        <div role="tablist" aria-label="View" className="pointer-events-auto flex rounded-full bg-ink p-1 shadow-lg">
+        <div ref={tabs} role="tablist" aria-label="View" className="pointer-events-auto relative grid grid-cols-2 rounded-full bg-ink p-1 shadow-lg">
+          {/* One white pill slides between the two tabs, so the switch reads as a single control */}
+          <span
+            aria-hidden
+            className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-white transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{ transform: view === "map" ? "translateX(100%)" : "translateX(0)" }}
+          />
           {(["list", "map"] as const).map((v) => {
             const Icon = v === "map" ? MapIcon : List;
             const on = view === v;
@@ -319,10 +535,10 @@ export function ExploreView() {
                 role="tab"
                 aria-selected={on}
                 type="button"
-                onClick={() => setView(v)}
+                onClick={() => switchView(v)}
                 className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-full px-5 text-body font-medium transition-colors duration-200",
-                  on ? "bg-white text-ink" : "text-white/80 hover:text-white",
+                  "relative z-10 inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-body font-medium transition-colors duration-300",
+                  on ? "text-ink" : "text-white/80 hover:text-white",
                 )}
               >
                 <Icon className="size-4" />
@@ -375,10 +591,16 @@ function ListingRail({
     if (!el) return;
     setEdges({ start: el.scrollLeft < 4, end: el.scrollLeft + el.clientWidth > el.scrollWidth - 4 });
   }, []);
-
   useEffect(() => {
     updateEdges();
   }, [results, updateEdges]);
+
+  const page = (d: 1 | -1) => {
+    const el = scroller.current;
+    if (!el) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollBy({ left: d * el.clientWidth * 0.8, behavior: reduce ? "auto" : "smooth" });
+  };
 
   // Bring the selected card into view when it was picked on the map
   useEffect(() => {
@@ -392,19 +614,12 @@ function ListingRail({
     }
   }, [activeId]);
 
-  const page = (d: 1 | -1) => {
-    const el = scroller.current;
-    if (!el) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    el.scrollBy({ left: d * el.clientWidth * 0.8, behavior: reduce ? "auto" : "smooth" });
-  };
-
   return (
     <div className="relative">
       <ul
         ref={scroller}
-        onScroll={updateEdges}
-        className={cn("be-scroll-x flex gap-3 overflow-x-auto", compact ? "scroll-px-4 px-4 pb-2" : "-mx-2 px-2 pt-1 pb-3")}
+        onScroll={compact ? undefined : updateEdges}
+        className={cn("be-scroll-x flex gap-3 overflow-x-auto", compact ? "scroll-px-4 px-4 pb-2" : "px-1 pt-1 pb-2")}
         aria-label="Listings"
       >
         {results.map((r) => (
@@ -418,7 +633,7 @@ function ListingRail({
             selected={r.id === activeId}
             onSelect={() => onSelect(r.id)}
             onHover={(on) => onHover(on ? r.id : null)}
-            className={compact ? "w-[220px]" : undefined}
+            className={compact ? "w-[220px]" : "w-[196px]"}
           />
         ))}
       </ul>
@@ -442,8 +657,8 @@ function RailButton({ side, hidden, onClick }: { side: "left" | "right"; hidden:
       tabIndex={hidden ? -1 : 0}
       aria-hidden={hidden}
       className={cn(
-        "absolute top-[34%] grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white text-ink shadow-md ring-1 ring-black/5 transition-all duration-200 hover:scale-105",
-        side === "left" ? "-left-3" : "-right-3",
+        "absolute top-[30%] grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white text-ink shadow-md ring-1 ring-black/5 transition-[opacity,scale] duration-200 hover:scale-105 active:scale-[0.97]",
+        side === "left" ? "left-1" : "right-1",
         hidden && "pointer-events-none scale-90 opacity-0",
       )}
     >
@@ -461,7 +676,9 @@ function EmptyState({
   onWiden,
   onRaise,
   onReset,
+  inPanel = false,
 }: {
+  inPanel?: boolean;
   filters: Filters;
   nextKm: number | null;
   nextBudget: number | null;
@@ -472,8 +689,9 @@ function EmptyState({
   onReset: () => void;
 }) {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-xl bg-surface p-6">
-      <h2 className="text-title3 font-semibold">No listings match this search</h2>
+    // Phone list: a textured card of its own. Desktop panel: sits directly in the panel (no card in a card)
+    <div className={cn("flex flex-col items-start gap-3", inPanel ? "" : "be-contours rounded-xl p-6")}>
+      <h2 className="font-display text-title2 font-semibold tracking-[-0.015em]">No listings match this search</h2>
       <p className="max-w-[52ch] text-body text-ink-2">
         Nothing within {filters.radiusKm} km of {filters.place} costs {formatPeso(filters.budget)} or less
         {filters.type !== "any" ? " in this room type" : ""}.
@@ -482,7 +700,7 @@ function EmptyState({
       </p>
       <div className="flex flex-wrap gap-2">
         {nextKm && (
-          <button type="button" onClick={() => onWiden(nextKm)} className="h-11 rounded-md bg-ink px-4 text-body font-medium text-white hover:bg-ink-2">
+          <button type="button" onClick={() => onWiden(nextKm)} className="h-11 rounded-md bg-clay px-4 text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]">
             Widen to {nextKm} km
           </button>
         )}
@@ -496,5 +714,41 @@ function EmptyState({
         </button>
       </div>
     </div>
+  );
+}
+
+/** The result count rolls to its new value, so a filter change visibly lands. */
+function AnimatedCount({ value }: { value: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const shown = useRef(value);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (reducedMotion()) {
+      el.textContent = String(value);
+      shown.current = value;
+      return;
+    }
+    const o = { n: shown.current };
+    const t = gsap.to(o, {
+      n: value,
+      duration: 0.5,
+      ease: EASE_OUT,
+      onUpdate: () => {
+        el.textContent = String(Math.round(o.n));
+      },
+      onComplete: () => {
+        shown.current = value;
+      },
+    });
+    return () => {
+      t.kill();
+      shown.current = value;
+    };
+  }, [value]);
+  return (
+    <span ref={ref} className="tabular-nums">
+      {value}
+    </span>
   );
 }

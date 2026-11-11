@@ -11,7 +11,7 @@ const ROLE_LABEL = { renter: "Renter", owner: "Property owner", admin: "Administ
 
 export default function AccountPage() {
   return (
-    <main id="main" className="flex-1 overflow-y-auto bg-surface">
+    <main id="main" className="be-contours flex-1 overflow-y-auto">
       <div className="mx-auto max-w-[640px] px-4 py-10 sm:py-14">
         <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white" aria-busy="true" />}>
           <AccountDetails />
@@ -51,7 +51,7 @@ async function AccountDetails() {
           <>
             <h2 className="text-callout font-semibold text-ink">Find a room</h2>
             <p className="mt-1 text-body text-ink-2">Saved rooms still live on this device for now. Moving them to your account comes next.</p>
-            <Link href="/" className="mt-4 inline-flex h-11 items-center rounded-md bg-ink px-4 text-body font-medium text-white hover:bg-ink-2">
+            <Link href="/find" className="mt-4 inline-flex h-11 items-center rounded-md bg-ink px-4 text-body font-medium text-white hover:bg-ink-2">
               Browse rooms
             </Link>
           </>

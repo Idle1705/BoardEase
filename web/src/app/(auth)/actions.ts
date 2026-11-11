@@ -5,7 +5,8 @@ import { z } from "zod";
 import { auth } from "@/lib/auth/server";
 import { createProfile } from "@/server/profiles";
 
-export type AuthFormState = { error?: string; fields?: Record<string, string> };
+/** `field` names the input an error belongs to, so it can be shown next to that input. */
+export type AuthFormState = { error?: string; field?: string; fields?: Record<string, string> };
 
 const email = z.string().trim().toLowerCase().email("Enter a valid email address.").max(254);
 const password = z.string().min(8, "Use at least 8 characters for your password.").max(128);
@@ -31,7 +32,7 @@ export async function signInAction(_: AuthFormState, form: FormData): Promise<Au
     password: form.get("password"),
   });
   const fields = { email: String(form.get("email") ?? "") };
-  if (!parsed.success) return { error: parsed.error.issues[0].message, fields };
+  if (!parsed.success) return { error: parsed.error.issues[0].message, field: String(parsed.error.issues[0].path[0] ?? ""), fields };
 
   const { error } = await auth.signIn.email(parsed.data);
   if (error) return { error: friendly(error.message), fields };
@@ -48,7 +49,7 @@ export async function signUpAction(_: AuthFormState, form: FormData): Promise<Au
     })
     .safeParse({ name: form.get("name"), email: form.get("email"), password: form.get("password"), role: form.get("role") });
   const fields = { name: String(form.get("name") ?? ""), email: String(form.get("email") ?? ""), role: String(form.get("role") ?? "renter") };
-  if (!parsed.success) return { error: parsed.error.issues[0].message, fields };
+  if (!parsed.success) return { error: parsed.error.issues[0].message, field: String(parsed.error.issues[0].path[0] ?? ""), fields };
 
   const { name, role } = parsed.data;
   const { data, error } = await auth.signUp.email({ name, email: parsed.data.email, password: parsed.data.password });

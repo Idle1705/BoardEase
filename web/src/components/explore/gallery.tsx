@@ -3,7 +3,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import gsap from "gsap";
-import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageOff, Maximize2 } from "lucide-react";
+import { Lightbox } from "./lightbox";
 import type { ListingPhoto } from "@/lib/listing-types";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,10 @@ type GalleryProps = {
   className?: string;
   children?: React.ReactNode;
   rounded?: string;
+  /** Adds a data-<name> attribute to the frame, e.g. for motion hooks. */
+  dataAttr?: string;
+  /** When set, shows an expand button that opens the photos full screen under this title. */
+  expandTitle?: string;
 };
 
 function GalleryInner({
@@ -34,15 +39,12 @@ function GalleryInner({
   className,
   children,
   rounded = "rounded-xl",
-}: {
-  photos: ListingPhoto[];
-  sizes: string;
-  priority?: boolean;
-  className?: string;
-  children?: React.ReactNode;
-  rounded?: string;
-}) {
+  dataAttr,
+  expandTitle,
+}: GalleryProps) {
   const [index, setIndex] = useState(0);
+  const [full, setFull] = useState(false);
+  const [prev, setPrev] = useState<number | null>(null);
   const [broken, setBroken] = useState<Record<number, boolean>>({});
   const dir = useRef(0);
   const frame = useRef<HTMLDivElement>(null);
@@ -59,17 +61,27 @@ function GalleryInner({
     };
   }, [index]);
 
+  // Drop the outgoing layer once its 300 ms fade (globals.css .be-fade-out) has finished
+  useEffect(() => {
+    if (prev === null) return;
+    const t = window.setTimeout(() => setPrev(null), 320);
+    return () => window.clearTimeout(t);
+  }, [prev, index]);
+
   const go = (d: 1 | -1) => {
     if (count < 2) return;
     dir.current = d;
-    setIndex((i) => (i + d + count) % count);
+    setPrev(index);
+    setIndex((index + d + count) % count);
   };
 
   const photo = photos[index];
+  const outgoing = prev !== null && prev !== index && !broken[prev] ? photos[prev] : null;
 
   return (
     <div
       ref={frame}
+      {...(dataAttr ? { [`data-${dataAttr}`]: "" } : {})}
       className={cn("group/gallery relative overflow-hidden bg-surface", rounded, className)}
       role="group"
       aria-roledescription="carousel"
@@ -92,6 +104,17 @@ function GalleryInner({
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(t.clientY - start.y)) go(dx < 0 ? 1 : -1);
       }}
     >
+      {outgoing && (
+        <Image
+          key={`out-${outgoing.src}`}
+          src={`${outgoing.src}.webp`}
+          alt=""
+          aria-hidden
+          fill
+          sizes={sizes}
+          className="be-fade-out object-cover"
+        />
+      )}
       {photo && !broken[index] ? (
         <Image
           data-photo
@@ -119,22 +142,31 @@ function GalleryInner({
         <>
           <GalleryArrow side="left" label="Previous photo" onClick={() => go(-1)} />
           <GalleryArrow side="right" label="Next photo" onClick={() => go(1)} />
-          <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-            <div className="flex items-center gap-1.5 rounded-full bg-black/30 px-2 py-1.5 backdrop-blur-sm">
-              {photos.map((p, i) => (
-                <span
-                  key={p.src + i}
-                  className={cn(
-                    "h-1.5 rounded-full bg-white transition-all duration-200",
-                    i === index ? "w-4 opacity-100" : "w-1.5 opacity-60",
-                  )}
-                />
-              ))}
-            </div>
-          </div>
+          {/* Visible count: tells you how many photos there are before you start clicking */}
+          <p className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-ink/70 px-2 py-1 text-caption font-medium tabular-nums text-white">
+            <span className="sr-only">Photo </span>
+            {index + 1} / {count}
+          </p>
           <span className="sr-only" aria-live="polite">
             Photo {index + 1} of {count}
           </span>
+        </>
+      )}
+
+      {expandTitle && photo && !broken[index] && (
+        <>
+          <button
+            type="button"
+            aria-label="Show photos full screen"
+            onClick={(e) => {
+              e.stopPropagation();
+              setFull(true);
+            }}
+            className="absolute right-3 bottom-3 grid size-10 place-items-center rounded-full bg-white/95 text-ink shadow-md transition-[opacity,scale] duration-150 hover:scale-105 active:scale-[0.97]"
+          >
+            <Maximize2 className="size-4" strokeWidth={2} />
+          </button>
+          <Lightbox photos={photos} start={index} open={full} onOpenChange={setFull} title={expandTitle} />
         </>
       )}
     </div>
@@ -152,8 +184,8 @@ function GalleryArrow({ side, label, onClick }: { side: "left" | "right"; label:
         onClick();
       }}
       className={cn(
-        "absolute top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-ink shadow-md transition-all duration-150",
-        "opacity-100 hover:scale-105 active:scale-95 md:opacity-0 md:group-hover/gallery:opacity-100 md:focus-visible:opacity-100",
+        "absolute top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-ink shadow-md transition-[opacity,scale] duration-150",
+        "opacity-100 hover:scale-105 active:scale-[0.97] pointer-fine:md:opacity-0 pointer-fine:md:group-hover/gallery:opacity-100 pointer-fine:md:focus-visible:opacity-100",
         side === "left" ? "left-3" : "right-3",
       )}
     >

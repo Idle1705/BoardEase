@@ -13,13 +13,13 @@ export function SignInForm() {
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <input type="hidden" name="next" value={next} />
-      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.fields?.email} />
-      <PasswordField autoComplete="current-password" />
-      <FormError message={state.error} />
+      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.fields?.email} error={errorFor(state, "email")} />
+      <PasswordField autoComplete="current-password" error={errorFor(state, "password")} />
+      <FormError message={state.field ? undefined : state.error} />
       <Submit pending={pending}>Log in</Submit>
       <p className="text-center text-footnote text-subtle">
         New to BoardEase?{" "}
-        <Link href="/sign-up" className="font-medium text-ink underline underline-offset-2">
+        <Link href="/sign-up" className="font-medium text-clay underline underline-offset-2 hover:text-clay-hover">
           Create an account
         </Link>
       </p>
@@ -27,9 +27,9 @@ export function SignInForm() {
   );
 }
 
-export function SignUpForm() {
+export function SignUpForm({ initialRole = "renter" }: { initialRole?: "renter" | "owner" }) {
   const [state, action, pending] = useActionState<AuthFormState, FormData>(signUpAction, {});
-  const [role, setRole] = useState(state.fields?.role === "owner" ? "owner" : "renter");
+  const [role, setRole] = useState(state.fields?.role ? (state.fields.role === "owner" ? "owner" : "renter") : initialRole);
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <fieldset className="flex flex-col gap-2">
@@ -44,8 +44,8 @@ export function SignUpForm() {
             <label
               key={value}
               className={cn(
-                "flex cursor-pointer flex-col gap-0.5 rounded-lg p-3 ring-1 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand",
-                role === value ? "bg-brand-soft ring-brand/40" : "ring-black/12 hover:bg-surface",
+                "flex cursor-pointer flex-col gap-0.5 rounded-lg p-3 ring-1 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-clay",
+                role === value ? "bg-clay-soft ring-2 ring-clay/60" : "ring-ink/15 bg-white hover:bg-surface",
               )}
             >
               <input
@@ -62,14 +62,14 @@ export function SignUpForm() {
           ))}
         </div>
       </fieldset>
-      <Field label="Full name" name="name" autoComplete="name" defaultValue={state.fields?.name} />
-      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.fields?.email} />
-      <PasswordField autoComplete="new-password" hint="At least 8 characters." />
-      <FormError message={state.error} />
+      <Field label="Full name" name="name" autoComplete="name" defaultValue={state.fields?.name} error={errorFor(state, "name")} />
+      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.fields?.email} error={errorFor(state, "email")} />
+      <PasswordField autoComplete="new-password" hint="At least 8 characters." error={errorFor(state, "password")} />
+      <FormError message={state.field ? undefined : state.error} />
       <Submit pending={pending}>Create account</Submit>
       <p className="text-center text-footnote text-subtle">
         Already have an account?{" "}
-        <Link href="/sign-in" className="font-medium text-ink underline underline-offset-2">
+        <Link href="/sign-in" className="font-medium text-clay underline underline-offset-2 hover:text-clay-hover">
           Log in
         </Link>
       </p>
@@ -83,12 +83,14 @@ function Field({
   type = "text",
   autoComplete,
   defaultValue,
+  error,
 }: {
   label: string;
   name: string;
   type?: string;
   autoComplete?: string;
   defaultValue?: string;
+  error?: string;
 }) {
   const id = useId();
   return (
@@ -103,13 +105,17 @@ function Field({
         autoComplete={autoComplete}
         defaultValue={defaultValue}
         required
-        className="h-12 rounded-md bg-white px-3.5 text-body text-ink ring-1 ring-black/14 outline-none transition-shadow placeholder:text-subtle focus:ring-2 focus:ring-brand"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        autoFocus={!!error}
+        className={cn(INPUT, error && "ring-2 ring-destructive/70")}
       />
+      <FieldError id={`${id}-error`} message={error} />
     </div>
   );
 }
 
-function PasswordField({ autoComplete, hint }: { autoComplete: string; hint?: string }) {
+function PasswordField({ autoComplete, hint, error }: { autoComplete: string; hint?: string; error?: string }) {
   const id = useId();
   const [show, setShow] = useState(false);
   return (
@@ -125,8 +131,10 @@ function PasswordField({ autoComplete, hint }: { autoComplete: string; hint?: st
           autoComplete={autoComplete}
           required
           minLength={8}
-          aria-describedby={hint ? `${id}-hint` : undefined}
-          className="h-12 w-full rounded-md bg-white pr-12 pl-3.5 text-body text-ink ring-1 ring-black/14 outline-none transition-shadow focus:ring-2 focus:ring-brand"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={[hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") || undefined}
+          autoFocus={!!error}
+          className={cn(INPUT, "w-full pr-12", error && "ring-2 ring-destructive/70")}
         />
         <button
           type="button"
@@ -134,10 +142,13 @@ function PasswordField({ autoComplete, hint }: { autoComplete: string; hint?: st
           aria-label={show ? "Hide password" : "Show password"}
           className="absolute top-1/2 right-1 grid size-10 -translate-y-1/2 place-items-center rounded-md text-subtle hover:bg-surface hover:text-ink"
         >
-          {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          <span key={String(show)} className="be-icon-in grid place-items-center">
+            {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </span>
         </button>
       </div>
-      {hint && (
+      <FieldError id={`${id}-error`} message={error} />
+      {hint && !error && (
         <p id={`${id}-hint`} className="text-footnote text-subtle">
           {hint}
         </p>
@@ -146,10 +157,25 @@ function PasswordField({ autoComplete, hint }: { autoComplete: string; hint?: st
   );
 }
 
+const INPUT =
+  "h-12 rounded-md bg-white px-3.5 text-body text-ink ring-1 ring-ink/15 outline-none transition-shadow placeholder:text-subtle hover:ring-ink/25 focus-visible:ring-2 focus-visible:ring-clay";
+
+const errorFor = (s: AuthFormState, name: string) => (s.field === name ? s.error : undefined);
+
+/** Shown right under its input and announced with it (aria-describedby). */
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="text-footnote font-medium text-destructive">
+      {message}
+    </p>
+  );
+}
+
 function FormError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className="rounded-md bg-[#fdecea] px-3 py-2.5 text-footnote text-destructive">
+    <p role="alert" className="rounded-md bg-[#fbeceb] px-3 py-2.5 text-footnote text-destructive ring-1 ring-destructive/15">
       {message}
     </p>
   );
@@ -160,7 +186,7 @@ function Submit({ pending, children }: { pending: boolean; children: React.React
     <button
       type="submit"
       disabled={pending}
-      className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-ink text-body font-medium text-white transition-colors hover:bg-ink-2 disabled:opacity-70"
+      className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-clay text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97] disabled:opacity-70"
     >
       {pending && <Loader2 className="size-4 animate-spin" />}
       {children}

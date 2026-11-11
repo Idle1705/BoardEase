@@ -32,7 +32,7 @@ export function ListingDetailsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[92dvh] flex-col gap-0 overflow-y-auto rounded-xl p-0 sm:max-w-2xl [&>*]:shrink-0" showCloseButton>
-        <Gallery photos={listing.photos} sizes="(min-width: 640px) 672px, 100vw" rounded="rounded-none" className="aspect-[16/10] w-full">
+        <Gallery photos={listing.photos} sizes="(min-width: 640px) 672px, 100vw" rounded="rounded-none" className="aspect-[16/10] w-full" expandTitle={listing.title}>
           <div className="absolute top-3 left-3">{listing.demo && <DemoBadge />}</div>
           <FavoriteButton id={listing.id} title={listing.title} className="absolute top-3 right-14" />
         </Gallery>
@@ -95,7 +95,7 @@ export function ListingDetailsDialog({
             <button
               type="button"
               onClick={onContact}
-              className="inline-flex h-11 items-center rounded-md bg-ink px-5 text-body font-medium text-white transition-colors hover:bg-ink-2"
+              className="inline-flex h-11 items-center rounded-md bg-clay px-5 text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]"
             >
               Contact owner
             </button>

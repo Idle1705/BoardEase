@@ -16,7 +16,7 @@ export function SavedList() {
       <div className="rounded-xl bg-surface p-6">
         <p className="font-medium text-ink">Nothing saved yet</p>
         <p className="mt-1">Tap the heart on a listing to keep it here.</p>
-        <Link href="/" className="mt-4 inline-flex h-11 items-center rounded-md bg-ink px-4 font-medium text-white hover:bg-ink-2">
+        <Link href="/find" className="mt-4 inline-flex h-11 items-center rounded-md bg-ink px-4 font-medium text-white hover:bg-ink-2">
           Browse rooms
         </Link>
       </div>
@@ -32,7 +32,7 @@ export function SavedList() {
           <div className="min-w-0 flex-1 py-1">
             {l.demo && <DemoBadge className="mb-1 bg-surface shadow-none" />}
             <p className="truncate font-medium text-ink">
-              <Link href={`/?id=${l.id}`} className="after:absolute after:inset-0">
+              <Link href={`/find?id=${l.id}`} className="after:absolute after:inset-0">
                 {l.title}
               </Link>
             </p>

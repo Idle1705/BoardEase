@@ -1,10 +1,7 @@
-import { Suspense } from "react";
-import { ExploreView } from "@/components/explore/explore-view";
+import { LandingPage } from "@/components/landing/landing-page";
 
-export default function ExplorePage() {
-  return (
-    <Suspense fallback={<div className="flex-1 bg-surface" aria-busy="true" />}>
-      <ExploreView />
-    </Suspense>
-  );
+// Old finder links (/?max=...&view=map) are redirected to /find in src/proxy.ts,
+// so this page stays fully static.
+export default function Home() {
+  return <LandingPage />;
 }
