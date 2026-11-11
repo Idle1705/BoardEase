@@ -33,8 +33,19 @@ Next.js 16 (App Router, Cache Components on) · TypeScript · Tailwind 4 · shad
 ## Still demonstration or not built
 
 - **All 10 listings are demo data** (`web/src/data/demo-listings.ts`), badged on every card. Photos are licensed Wikimedia stand-ins showing other places (`/credits`).
-- Accounts (Neon Auth), owner portal, inquiries, moderation and admin: schema only, no screens.
-- No database is connected; `drizzle/0000_init.sql` is generated but not applied.
+- Owner portal, inquiries, moderation and admin: schema only, no screens.
+
+## Accounts (Neon Auth), added 2026-11-11
+
+- Neon Auth (managed Better Auth) is enabled on the `main` branch via the Neon API. Users and sessions live in the `neon_auth` schema; our `profiles` table holds the role.
+- Pages: `/sign-up` (renter or owner; admin is never self-chosen), `/sign-in`, `/account`. `src/proxy.ts` protects `/account`, `/owner` and `/admin`.
+- `getCurrentUser()` and `requireRole()` in `src/server/profiles.ts` read the role from the database on the server. Use `requireRole` at the top of every private server action.
+- Tested in the browser: sign-up as owner, profile row created, wrong password error, log in, log out, header state, redirect when signed out.
+- Not tested: duplicate-email sign-up message, password reset (not built).
+- **Before launch:** turn on email verification (`require_email_verification` is off), set up an email provider for resets, and add the production domain to Neon Auth's trusted domains.
+- **Dependency exception (approved 2026-11-11):** `@neon/auth` depends on `@supabase/auth-js` and imports only its error classes. No Supabase service, key or network call is involved.
+- Local test account: `TEST_OWNER_EMAIL` / `TEST_OWNER_PASSWORD` in `web/.env.local`.
+- Neon project `boardease` (Singapore, Postgres 17) exists and `drizzle/0000_init.sql` is applied (14 tables). It holds no data yet, and the app still reads demo listings. `DATABASE_URL` is in `web/.env.local` (gitignored). Apply new migrations with `npx drizzle-kit migrate` after loading that file.
 - No photo upload: Neon has no object storage. Pick Cloudflare R2 or Vercel Blob.
 
 ## Before launch

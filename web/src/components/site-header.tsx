@@ -1,11 +1,15 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Heart, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useFavorites } from "@/hooks/use-favorites";
+import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
+
+const AUTH_PATHS = ["/account", "/sign-in", "/sign-up"];
 
 const NAV = [
   { href: "/", label: "Explore rooms" },
@@ -29,6 +33,17 @@ export function Logo() {
 export function SiteHeader() {
   const path = usePathname();
   const { saved } = useFavorites();
+  const { data: session, isPending, refetch } = authClient.useSession();
+  // Sign-in, sign-up and sign-out run as server actions, so re-read the session
+  // whenever we arrive at or leave an auth-related page.
+  const lastPath = useRef(path);
+  useEffect(() => {
+    const touched = [lastPath.current, path].some((p) => AUTH_PATHS.some((a) => p === a || p.startsWith(`${a}/`)));
+    lastPath.current = path;
+    if (touched) refetch();
+  }, [path, refetch]);
+  const signedIn = !!session?.user;
+  const initial = (session?.user?.name || session?.user?.email || "?").trim().charAt(0).toUpperCase();
   return (
     <header className="relative z-40 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-hairline bg-white px-4 sm:px-6">
       <div className="flex items-center gap-8">
@@ -69,18 +84,38 @@ export function SiteHeader() {
             </span>
           )}
         </Link>
-        <Link
-          href="/sign-in"
-          className="hidden h-9 items-center rounded-md px-3 text-body font-medium whitespace-nowrap text-ink transition-colors hover:bg-surface md:inline-flex"
-        >
-          Log in
-        </Link>
-        <Link
-          href="/sign-in"
-          className="hidden h-9 items-center rounded-md bg-ink px-3.5 text-body font-medium whitespace-nowrap text-white transition-colors hover:bg-ink-2 md:inline-flex"
-        >
-          Sign up
-        </Link>
+        {signedIn ? (
+          <Link
+            href="/account"
+            className="hidden h-9 items-center gap-2 rounded-md pr-3 pl-1.5 text-body font-medium whitespace-nowrap text-ink transition-colors hover:bg-surface md:inline-flex"
+          >
+            <span className="grid size-7 place-items-center rounded-full bg-ink text-caption font-semibold text-white" aria-hidden>
+              {initial}
+            </span>
+            Account
+          </Link>
+        ) : (
+          <>
+            <Link
+              href="/sign-in"
+              className={cn(
+                "hidden h-9 items-center rounded-md px-3 text-body font-medium whitespace-nowrap text-ink transition-colors hover:bg-surface md:inline-flex",
+                isPending && "invisible",
+              )}
+            >
+              Log in
+            </Link>
+            <Link
+              href="/sign-up"
+              className={cn(
+                "hidden h-9 items-center rounded-md bg-ink px-3.5 text-body font-medium whitespace-nowrap text-white transition-colors hover:bg-ink-2 md:inline-flex",
+                isPending && "invisible",
+              )}
+            >
+              Sign up
+            </Link>
+          </>
+        )}
 
         <Sheet>
           <SheetTrigger
@@ -102,12 +137,20 @@ export function SiteHeader() {
               ))}
             </nav>
             <div className="mt-auto flex gap-2 border-t border-hairline p-4">
-              <Link href="/sign-in" className="inline-flex h-11 flex-1 items-center justify-center rounded-md text-body font-medium ring-1 ring-black/12">
-                Log in
-              </Link>
-              <Link href="/sign-in" className="inline-flex h-11 flex-1 items-center justify-center rounded-md bg-ink text-body font-medium text-white">
-                Sign up
-              </Link>
+              {signedIn ? (
+                <Link href="/account" className="inline-flex h-11 flex-1 items-center justify-center rounded-md bg-ink text-body font-medium text-white">
+                  Your account
+                </Link>
+              ) : (
+                <>
+                  <Link href="/sign-in" className="inline-flex h-11 flex-1 items-center justify-center rounded-md text-body font-medium ring-1 ring-black/12">
+                    Log in
+                  </Link>
+                  <Link href="/sign-up" className="inline-flex h-11 flex-1 items-center justify-center rounded-md bg-ink text-body font-medium text-white">
+                    Sign up
+                  </Link>
+                </>
+              )}
             </div>
           </SheetContent>
         </Sheet>
