@@ -1,0 +1,402 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+/* BoardEase design tokens. Rules and reasons: docs/web/DESIGN_SYSTEM.md */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* Locked brand type: Familjen Grotesk for brand headlines, Hanken Grotesk for everything functional */
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-familjen), var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-display);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* BoardEase named colours */
+  --color-ink: var(--be-ink);
+  --color-ink-2: var(--be-ink-2);
+  --color-subtle: var(--be-subtle);
+  --color-surface: var(--be-surface);
+  --color-surface-2: var(--be-surface-2);
+  --color-hairline: var(--be-hairline);
+  --color-brand: var(--be-brand);
+  --color-brand-hover: var(--be-brand-hover);
+  --color-brand-soft: var(--be-brand-soft);
+  --color-warn: var(--be-warn);
+
+  /* Locked BoardEase palette (docs/web/DESIGN_SYSTEM.md) */
+  --color-clay: var(--be-clay);
+  --color-clay-hover: var(--be-clay-hover);
+  --color-clay-soft: var(--be-clay-soft);
+  --color-porcelain: var(--be-porcelain);
+  --color-limestone: var(--be-limestone);
+  --color-garden: var(--be-garden);
+  --color-garden-soft: var(--be-garden-soft);
+  --color-garden-ink: var(--be-garden-ink);
+
+  /* shadcn bridge */
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Radius by hierarchy, not one radius everywhere */
+  --radius-sm: 6px;   /* tags, small badges */
+  --radius-md: 10px;  /* inputs, buttons, menu items */
+  --radius-lg: 14px;  /* small cards, popovers */
+  --radius-xl: 20px;  /* featured media, panels */
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+  --radius-4xl: 32px;
+
+  /* Type scale (px / line-height), modelled on Apple's text styles */
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-footnote: 13px;
+  --text-footnote--line-height: 18px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-callout: 17px;
+  --text-callout--line-height: 24px;
+  --text-title3: 20px;
+  --text-title3--line-height: 26px;
+  --text-title2: 24px;
+  --text-title2--line-height: 30px;
+  --text-title1: 30px;
+  --text-title1--line-height: 36px;
+
+  /* Marketing scale (landing and content pages only) */
+  --text-display: clamp(2.75rem, 1.2rem + 4.1vw, 4.75rem); /* 44 to 76px */
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.028em;
+  --text-section: clamp(1.875rem, 1.2rem + 1.7vw, 2.75rem); /* 30 to 44px */
+  --text-section--line-height: 1.08;
+  --text-section--letter-spacing: -0.02em;
+  --text-lead: 1.1875rem; /* 19px */
+  --text-lead--line-height: 1.55;
+  --text-prose: 1.0625rem; /* 17px */
+  --text-prose--line-height: 1.6;
+
+  --shadow-hair: 0 0 0 1px var(--be-hairline);
+  /* Shadows tinted with Deep Ink, never pure black, so they sit warmly on Porcelain */
+  --shadow-sm: 0 1px 2px rgb(32 42 40 / 0.07), 0 0 0 1px rgb(32 42 40 / 0.05);
+  --shadow-md: 0 8px 22px -10px rgb(32 42 40 / 0.18), 0 1px 3px rgb(32 42 40 / 0.07);
+  --shadow-lg: 0 22px 44px -18px rgb(32 42 40 / 0.26), 0 2px 6px rgb(32 42 40 / 0.07);
+  --shadow-xl: 0 32px 64px -24px rgb(32 42 40 / 0.32), 0 4px 10px rgb(32 42 40 / 0.06);
+
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1); /* expo-out; no overshoot */
+}
+
+:root {
+  /* Locked palette */
+  --be-clay: #b44630;       /* Fired Clay: main actions, active nav, selected pin */
+  --be-clay-hover: #9a3a27; /* derived: 7.0:1 on white */
+  --be-clay-soft: #f6e9e4;  /* derived tint: active chips, selection */
+  --be-porcelain: #f7f4ee;  /* Warm Porcelain: landing canvas, warm surfaces */
+  --be-limestone: #e7e1d7;  /* Limestone: borders, dividers, subtle layers */
+  --be-garden: #497760;     /* Garden Green: real availability and success only */
+  --be-garden-soft: #e8efea;
+  --be-garden-ink: #3d6450;   /* derived: Garden text on garden-soft passes 4.5:1 */
+
+  --be-ink: #202a28;        /* Deep Ink: 14.8:1 on white, 13.4:1 on Porcelain */
+  --be-ink-2: #46504d;      /* derived: 8.4:1 on white */
+  --be-subtle: #5f6865;     /* derived: 5.8:1 on white, 5.2:1 on Porcelain */
+  --be-surface: #f7f4ee;    /* = Porcelain */
+  --be-surface-2: #e7e1d7;  /* = Limestone */
+  --be-hairline: rgb(32 42 40 / 0.1);
+  --be-brand: var(--be-clay);
+  --be-brand-hover: var(--be-clay-hover);
+  --be-brand-soft: var(--be-clay-soft);
+  --be-warn: #8a5a00;       /* functional warning, not brand */
+
+  --background: #ffffff;
+  --foreground: var(--be-ink);
+  --card: #ffffff;
+  --card-foreground: var(--be-ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--be-ink);
+  --primary: var(--be-ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--be-surface);
+  --secondary-foreground: var(--be-ink);
+  --muted: var(--be-surface);
+  --muted-foreground: var(--be-subtle);
+  --accent: var(--be-surface);
+  --accent-foreground: var(--be-ink);
+  --destructive: #c4261d;
+  --border: rgb(32 42 40 / 0.12);
+  --input: rgb(32 42 40 / 0.18);
+  --ring: var(--be-brand);
+  --radius: 10px;
+}
+
+@layer base {
+  * {
+    @apply border-border; /* no half-strength outline: focus rings must reach 3:1 (WCAG 2.4.11) */
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  :focus-visible {
+    outline: 2px solid var(--be-brand);
+    outline-offset: 2px;
+  }
+}
+
+/* Map chrome: quiet MapLibre controls to match the system */
+.maplibregl-ctrl-attrib {
+  font-size: 11px;
+  background: rgb(255 255 255 / 0.85) !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--be-subtle);
+}
+
+/* Price markers on the map */
+.be-marker {
+  --m-bg: #ffffff;
+  --m-ink: var(--be-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--m-bg);
+  color: var(--m-ink);
+  font: 650 13px/1 var(--font-hanken), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 8px -2px rgb(32 42 40 / 0.24), 0 0 0 1px rgb(32 42 40 / 0.08);
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  transition:
+    transform 180ms var(--ease-spring),
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+  white-space: nowrap;
+}
+.be-marker:hover,
+.be-marker[data-hovered="true"] {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 14px -4px rgb(32 42 40 / 0.3), 0 0 0 1px rgb(32 42 40 / 0.1);
+}
+.be-marker[data-selected="true"] {
+  --m-bg: var(--be-clay);
+  --m-ink: #ffffff;
+  box-shadow: 0 8px 18px -6px rgb(180 70 48 / 0.55), 0 0 0 1px rgb(154 58 39 / 0.4);
+  transform: translateY(-3px) scale(1.1);
+}
+.be-marker[data-saved="true"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--be-clay);
+}
+.be-marker[data-selected="true"][data-saved="true"]::before { background: #ffffff; }
+.be-marker-wrap {
+  z-index: 1;
+}
+.be-marker-wrap:has([data-selected="true"]) {
+  z-index: 3;
+}
+.be-marker-wrap:has([data-hovered="true"]) {
+  z-index: 2;
+}
+
+/* Search centre and user location dots */
+.be-centre {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--be-ink);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgb(32 42 40 / 0.16), 0 2px 6px rgb(32 42 40 / 0.3);
+}
+.be-user {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #2b6fd6;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgb(43 111 214 / 0.18);
+}
+
+/* Favourite heart pop: answers the press, then rests */
+@keyframes be-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.28); }
+  70% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+.be-pop {
+  animation: be-pop 360ms var(--ease-out-soft);
+}
+
+.be-scroll-x {
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+}
+.be-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* ---------- Motion pieces (see src/lib/motion.ts) ---------- */
+
+/* Selected pin: one ring goes out from it */
+/* pins are position:absolute (MapLibre), so the ::after ring anchors to them; never set position here */
+.be-marker.be-ping::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 2px solid var(--be-clay);
+  pointer-events: none;
+  animation: be-ping 720ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes be-ping {
+  from { opacity: 0.55; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.9); }
+}
+
+/* Saving a listing: six dots burst from the heart */
+.be-burst { position: absolute; inset: 0; pointer-events: none; }
+.be-burst i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 999px;
+  background: var(--be-clay);
+  transform: rotate(var(--a)) translateY(0);
+  animation: be-burst 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes be-burst {
+  0% { opacity: 1; transform: rotate(var(--a)) translateY(-6px) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(-20px) scale(0.3); }
+}
+
+/* ---------- Browser surfaces, themed ---------- */
+::selection { background: rgb(180 70 48 / 0.18); color: var(--be-ink); }
+input, textarea { caret-color: var(--be-brand); }
+* { scrollbar-width: thin; scrollbar-color: rgb(32 42 40 / 0.22) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgb(0 0 0 / 0.16); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: rgb(0 0 0 / 0.3); }
+a { text-underline-offset: 3px; }
+
+/* ---------- Knowledge-base picks (~/.claude/design-knowledge, docs/web/DESIGN_SYSTEM.md) ---------- */
+
+/* Background #13, contour lines: only where there is no data (loading, empty, account pages) */
+.be-contours {
+  background-color: var(--be-surface);
+  background-image: url("/textures/contours.svg");
+  background-size: 640px 640px;
+}
+
+/* Motion #5: a dragged slider knob stretches 12% */
+[data-slot="slider-thumb"] { transition: scale 120ms ease-out, box-shadow 150ms ease; }
+[data-slot="slider-thumb"][data-dragging] { scale: 1.12 1; }
+
+/* Motion #8: one pulse confirms a save on the Saved count */
+@keyframes be-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(180 70 48 / 0.45); scale: 1; }
+  35% { scale: 1.18; }
+  100% { box-shadow: 0 0 0 8px rgb(180 70 48 / 0); scale: 1; }
+}
+.be-pulse { animation: be-pulse 620ms cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* Motion #18: icon swaps crossfade with scale and blur */
+@keyframes be-icon-in {
+  from { opacity: 0; scale: 0.6; filter: blur(3px); }
+  to { opacity: 1; scale: 1; filter: blur(0); }
+}
+.be-icon-in { animation: be-icon-in 180ms cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* Motion #16: the outgoing gallery photo stays under the incoming one, then fades */
+@keyframes be-fade-out { to { opacity: 0; } }
+.be-fade-out { animation: be-fade-out 300ms cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+  .be-burst, .be-marker.be-ping::after { display: none; }
+}
+
+/* ---------- Landing page (docs/web/DESIGN_SYSTEM.md, "Landing page") ---------- */
+
+/* Warm daylight on Porcelain: clay light from the upper right, garden shade lower left.
+   Tuned by eye at 1440 and 390; kept under 8% so photos and text always win. */
+.be-daylight {
+  background:
+    radial-gradient(ellipse 60% 900px at 88% 0%, rgb(180 70 48 / 0.075), transparent 70%),
+    radial-gradient(ellipse 55% 700px at 4% 100%, rgb(73 119 96 / 0.05), transparent 70%),
+    var(--be-porcelain);
+}
+
+/* Architectural rule lines: a quiet 1px grid like drafting paper, only inside the hero frame */
+.be-drafting {
+  background-image:
+    linear-gradient(to right, rgb(32 42 40 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(32 42 40 / 0.045) 1px, transparent 1px);
+  background-size: 96px 96px;
+  mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 30%, transparent 75%);
+}
+
+/* Reveal on scroll: content is visible by default; JS adds .be-reveal-ready only when motion is allowed */
+.be-reveal-ready [data-reveal] {
+  opacity: 0;
+  translate: 0 18px;
+  transition: opacity 600ms cubic-bezier(0.23, 1, 0.32, 1), translate 600ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.be-reveal-ready [data-reveal][data-shown] {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* Hero entrance (landing only). Lead moves furthest, support less, labels barely; 0.5-0.7s,
+   100-ish ms steps (Emil Kowalski, choreograph). CSS only, so it never waits on JavaScript. */
+@keyframes be-rise {
+  from { opacity: 0; translate: 0 var(--rise, 14px); }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes be-settle {
+  from { opacity: 0; scale: 1.035; }
+  to { opacity: 1; scale: 1; }
+}
+.be-enter { animation: be-rise 560ms cubic-bezier(0.23, 1, 0.32, 1) var(--d, 0ms) both; }
+.be-settle { animation: be-settle 760ms cubic-bezier(0.23, 1, 0.32, 1) var(--d, 0ms) both; }
