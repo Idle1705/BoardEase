@@ -1,0 +1,239 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+/* BoardEase design tokens. Rules and reasons: docs/web/DESIGN_SYSTEM.md */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+
+  /* BoardEase named colours */
+  --color-ink: var(--be-ink);
+  --color-ink-2: var(--be-ink-2);
+  --color-subtle: var(--be-subtle);
+  --color-surface: var(--be-surface);
+  --color-surface-2: var(--be-surface-2);
+  --color-hairline: var(--be-hairline);
+  --color-brand: var(--be-brand);
+  --color-brand-hover: var(--be-brand-hover);
+  --color-brand-soft: var(--be-brand-soft);
+  --color-warn: var(--be-warn);
+
+  /* shadcn bridge */
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Radius by hierarchy, not one radius everywhere */
+  --radius-sm: 6px;   /* tags, small badges */
+  --radius-md: 10px;  /* inputs, buttons, menu items */
+  --radius-lg: 14px;  /* small cards, popovers */
+  --radius-xl: 20px;  /* featured media, panels */
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+  --radius-4xl: 32px;
+
+  /* Type scale (px / line-height), modelled on Apple's text styles */
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-footnote: 13px;
+  --text-footnote--line-height: 18px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-callout: 17px;
+  --text-callout--line-height: 24px;
+  --text-title3: 20px;
+  --text-title3--line-height: 26px;
+  --text-title2: 24px;
+  --text-title2--line-height: 30px;
+  --text-title1: 30px;
+  --text-title1--line-height: 36px;
+
+  --shadow-hair: 0 0 0 1px var(--be-hairline);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06), 0 0 0 1px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 6px 20px -8px rgb(0 0 0 / 0.14), 0 1px 3px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 18px 40px -16px rgb(0 0 0 / 0.22), 0 2px 6px rgb(0 0 0 / 0.06);
+
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+:root {
+  --be-ink: #1d1d1f;
+  --be-ink-2: #424245;
+  --be-subtle: #6e6e73;
+  --be-surface: #f5f5f7;
+  --be-surface-2: #ebebee;
+  --be-hairline: rgb(0 0 0 / 0.08);
+  --be-brand: #0f6b52;
+  --be-brand-hover: #0b5843;
+  --be-brand-soft: #e7f2ee;
+  --be-warn: #8a5a00;
+
+  --background: #ffffff;
+  --foreground: var(--be-ink);
+  --card: #ffffff;
+  --card-foreground: var(--be-ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--be-ink);
+  --primary: var(--be-ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--be-surface);
+  --secondary-foreground: var(--be-ink);
+  --muted: var(--be-surface);
+  --muted-foreground: var(--be-subtle);
+  --accent: var(--be-surface);
+  --accent-foreground: var(--be-ink);
+  --destructive: #c4261d;
+  --border: rgb(0 0 0 / 0.1);
+  --input: rgb(0 0 0 / 0.14);
+  --ring: var(--be-brand);
+  --radius: 10px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  :focus-visible {
+    outline: 2px solid var(--be-brand);
+    outline-offset: 2px;
+  }
+}
+
+/* Map chrome: quiet MapLibre controls to match the system */
+.maplibregl-ctrl-attrib {
+  font-size: 11px;
+  background: rgb(255 255 255 / 0.85) !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--be-subtle);
+}
+
+/* Price markers on the map */
+.be-marker {
+  --m-bg: #ffffff;
+  --m-ink: var(--be-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--m-bg);
+  color: var(--m-ink);
+  font: 600 13px/1 var(--font-geist-sans), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.22), 0 0 0 1px rgb(0 0 0 / 0.06);
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  transition:
+    transform 180ms var(--ease-spring),
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+  white-space: nowrap;
+}
+.be-marker:hover,
+.be-marker[data-hovered="true"] {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 14px -4px rgb(0 0 0 / 0.28), 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+.be-marker[data-selected="true"] {
+  --m-bg: var(--be-ink);
+  --m-ink: #ffffff;
+  transform: translateY(-3px) scale(1.1);
+}
+.be-marker[data-saved="true"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e0453a;
+}
+.be-marker-wrap {
+  z-index: 1;
+}
+.be-marker-wrap:has([data-selected="true"]) {
+  z-index: 3;
+}
+.be-marker-wrap:has([data-hovered="true"]) {
+  z-index: 2;
+}
+
+/* Search centre and user location dots */
+.be-centre {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--be-brand);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgb(15 107 82 / 0.18), 0 2px 6px rgb(0 0 0 / 0.25);
+}
+.be-user {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #2b6fd6;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgb(43 111 214 / 0.18);
+}
+
+/* Favourite heart pop: answers the press, then rests */
+@keyframes be-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.28); }
+  70% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+.be-pop {
+  animation: be-pop 360ms var(--ease-out-soft);
+}
+
+.be-scroll-x {
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+}
+.be-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
