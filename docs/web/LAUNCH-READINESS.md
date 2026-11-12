@@ -26,7 +26,7 @@
 
 ## Before any real owner (blockers)
 
-1. ~~Apply migration 0002 to main~~ **Done 2026-11-12** (snapshot branch `backup-pre-0002-2026-11-12` taken first; main now 26 tables, all existing rows intact). **Still to do: commit and deploy this code** (needs your approval).
+1. ~~Apply migration 0002 to main~~ **Done 2026-11-12** (snapshot branch `backup-pre-0002-2026-11-12` taken first; main now 26 tables, all existing rows intact). Code committed (3cc2023, branch `web/rental-discovery`) and **deployed to Vercel Production 2026-11-12** (https://boardease-two.vercel.app, behind Deployment Protection). Checked: pages 200, finder shows the empty state with no demos, unknown listing 404s, signed-out upload 401, no errors in function logs.
 2. ~~Production photo storage~~ **Done 2026-11-12:** bucket `listing-photos` (public_read) on main, storage credential created and tested (write, public read, delete), five `S3_*` variables added to Vercel Production (secret ones marked sensitive). They take effect on the next deploy.
 3. **Name at least one reviewer** and grant `admin` by hand. Nobody can approve listings until then. Admin must not be one of the pilot owners (admins can't review their own listings anyway).
 4. **Privacy:** the `/privacy` page is a marked draft. It needs legal review, a named Data Protection Officer and contact (RA 10173), and the two promises it makes must be built or reworded: deleting closed inquiries after 12 months (no job yet) and a self-service account deletion (no flow yet; today it would be a manual request).
