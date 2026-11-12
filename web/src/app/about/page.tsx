@@ -20,8 +20,9 @@ export default function About() {
       <section className="flex flex-col gap-3">
         <h2 className="text-title3 font-semibold text-ink">Where it is now</h2>
         <p>
-          BoardEase is in development. The listings on the map are demonstrations, not rooms for rent. Accounts for
-          renters and owners work; listings from real owners, inquiries and billing are being built.
+          BoardEase is preparing a small pilot in Davao City. Owners can create listings with their own photos; each
+          one is reviewed before it appears on the map, and renters message owners inside BoardEase. Tenant records
+          and billing come later.
         </p>
       </section>
       <p>

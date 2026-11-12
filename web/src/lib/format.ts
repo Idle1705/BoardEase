@@ -27,3 +27,16 @@ export function formatPesoShort(amount: number): string {
   const k = amount / 1000;
   return `₱${Number.isInteger(k) ? k : k.toFixed(1)}k`;
 }
+
+const dateFmt = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", day: "numeric", month: "short", year: "numeric" });
+const dateTimeFmt = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+/** 12 Nov 2026, in Philippine time */
+export function manilaDate(d: Date): string {
+  return dateFmt.format(d);
+}
+
+/** 12 Nov, 3:05 pm, in Philippine time */
+export function manilaDateTime(d: Date): string {
+  return dateTimeFmt.format(d);
+}

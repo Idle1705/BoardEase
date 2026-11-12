@@ -7,10 +7,10 @@ import { ChevronLeft, ChevronRight, Info, List, Map as MapIcon, SlidersHorizonta
 import { toast } from "sonner";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { DEMO_LISTINGS } from "@/data/demo-listings";
 import { useFavorites } from "@/hooks/use-favorites";
 import { distanceKm, type LngLat } from "@/lib/geo";
 import { formatPeso } from "@/lib/format";
+import type { PublicListing } from "@/lib/listing-types";
 import { DEFAULT_FILTERS, filtersToParams, parseFilters, searchListings, type Filters } from "@/lib/search";
 import { EASE_MOVE, EASE_OUT, Flip, gsap, reducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,11 @@ import { ListingCard } from "./listing-card";
 import { ContactDialog, ListingDetailsDialog } from "./listing-dialogs";
 import { MapView } from "./map-view";
 
-export function ExploreView() {
+/**
+ * The finder. `listings` are real published listings from Neon (server/marketplace/core.ts), plus demo
+ * listings only when the server enables them (BOARDEASE_DEMO_LISTINGS=1), always badged as demos.
+ */
+export function ExploreView({ listings }: { listings: PublicListing[] }) {
   const params = useSearchParams();
   const [filters, setFiltersState] = useState<Filters>(() => parseFilters(new URLSearchParams(params.toString())));
   const [selectedId, setSelectedId] = useState<string | null>(() => params.get("id"));
@@ -109,7 +113,8 @@ export function ExploreView() {
   );
 
   const centre = useMemo(() => ({ lat: filters.lat, lng: filters.lng }), [filters.lat, filters.lng]);
-  const { results, outsideRadius, overBudget } = useMemo(() => searchListings(DEMO_LISTINGS, filters), [filters]);
+  const hasDemo = listings.some((l) => l.demo);
+  const { results, outsideRadius, overBudget } = useMemo(() => searchListings(listings, filters), [listings, filters]);
 
   useLayoutEffect(() => {
     const state = flipState.current;
@@ -205,7 +210,7 @@ export function ExploreView() {
 
   // Suggestions for an empty or short result list, from the real data only
   const widen = useMemo(() => {
-    const typed = DEMO_LISTINGS.filter((l) => filters.type === "any" || l.type === filters.type);
+    const typed = listings.filter((l) => filters.type === "any" || l.type === filters.type);
     const inBudget = typed
       .filter((l) => l.monthlyPrice <= filters.budget)
       .map((l) => distanceKm(centre, l))
@@ -218,7 +223,7 @@ export function ExploreView() {
       .sort((a, b) => a - b);
     const nextBudget = pricier.length ? Math.min(20000, Math.ceil(pricier[0] / 500) * 500) : null;
     return { nextKm: nextKm && nextKm > filters.radiusKm ? nextKm : null, nextBudget };
-  }, [filters, centre]);
+  }, [listings, filters, centre]);
 
   const locate = () => {
     if (!("geolocation" in navigator)) {
@@ -314,7 +319,7 @@ export function ExploreView() {
         )}
       >
         {/* Floating search and filters: first in the DOM so Tab reaches search before the map pins */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-3 p-4 lg:p-5">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-3 p-4 lg:p-5 lg:pt-[92px]">
           <div className="pointer-events-auto flex gap-2">
             <LocationSearch
               className="min-w-0 flex-1 lg:max-w-[440px]"
@@ -371,12 +376,12 @@ export function ExploreView() {
 
       {/* ---------- Desktop: floating listing panel over the map ---------- */}
       {isDesktop && results.length > 0 && !featured && (
-        <div className="absolute top-5 right-5 z-30 hidden w-[268px] rounded-[22px] bg-white p-4 shadow-lg ring-1 ring-black/5 lg:block">
+        <div className="absolute top-[92px] right-5 z-30 hidden w-[268px] rounded-[22px] bg-white p-4 shadow-lg ring-1 ring-black/5 lg:block">
           <p className="text-callout font-semibold text-ink" aria-live="polite">
-            <AnimatedCount value={results.length} /> demo {results.length === 1 ? "listing" : "listings"} within {filters.radiusKm} km
+            <AnimatedCount value={results.length} /> {countNoun(results)} within {filters.radiusKm} km
           </p>
           <p className="mt-1 text-footnote text-subtle">
-            Press a price on the map to see the room. Demo listings, not for rent (<Link href="/credits" className="underline hover:text-ink">credits</Link>).
+            Press a price on the map to see the place.{hasDemo && <> Includes demo listings, not for rent (<Link href="/credits" className="underline hover:text-ink">credits</Link>).</>}
           </p>
           <button
             ref={showListButton}
@@ -391,7 +396,7 @@ export function ExploreView() {
       )}
 
       {isDesktop && results.length === 0 && (
-        <aside aria-label="No results" className="absolute top-5 right-5 z-30 hidden w-[400px] rounded-[28px] bg-white p-5 shadow-xl ring-1 ring-black/5 lg:block">
+        <aside aria-label="No results" className="absolute top-[92px] right-5 z-30 hidden w-[400px] rounded-[28px] bg-white p-5 shadow-xl ring-1 ring-black/5 lg:block">
           <EmptyState
             inPanel
             filters={filters}
@@ -402,6 +407,7 @@ export function ExploreView() {
             onWiden={(radiusKm) => setFilters({ radiusKm })}
             onRaise={(budget) => setFilters({ budget })}
             onReset={() => setFilters({ ...DEFAULT_FILTERS })}
+            total={listings.length}
           />
         </aside>
       )}
@@ -410,7 +416,7 @@ export function ExploreView() {
         <aside
           ref={panelBox}
           aria-label={`Listing: ${featured.title}`}
-          className="absolute top-5 right-5 z-30 hidden max-h-[calc(100%-40px)] w-[min(640px,calc(50vw-24px))] flex-col gap-4 lg:flex overflow-y-auto overscroll-contain rounded-[28px] bg-white p-3 shadow-xl ring-1 ring-black/5"
+          className="absolute top-[92px] right-5 z-30 hidden max-h-[calc(100%-112px)] w-[min(640px,calc(50vw-24px))] flex-col gap-4 lg:flex overflow-y-auto overscroll-contain rounded-[28px] bg-white p-3 shadow-xl ring-1 ring-black/5"
         >
           <button
             type="button"
@@ -431,19 +437,21 @@ export function ExploreView() {
 
           <div className="flex items-center justify-between gap-3 border-t border-hairline px-1 pt-3">
             <h2 className="text-body font-semibold text-ink" aria-live="polite">
-              <AnimatedCount value={results.length} /> demo {results.length === 1 ? "listing" : "listings"} within {filters.radiusKm} km
+              <AnimatedCount value={results.length} /> {countNoun(results)} within {filters.radiusKm} km
             </h2>
             <SortMenu value={filters.sort} onChange={(sort) => setFilters({ sort })} />
           </div>
 
           <ListingRail results={results} activeId={activeId} onSelect={select} onHover={setHoveredId} />
 
-          <p className="flex items-start gap-1.5 px-1 pb-1 text-caption text-warn">
-            <Info className="mt-px size-3.5 shrink-0" />
-            <span>
-              Demo listings: examples of how BoardEase works, not for rent. Photos are stand-ins (<Link href="/credits" className="underline hover:text-ink">credits</Link>).
-            </span>
-          </p>
+          {hasDemo && (
+            <p className="flex items-start gap-1.5 px-1 pb-1 text-caption text-warn">
+              <Info className="mt-px size-3.5 shrink-0" />
+              <span>
+                Demo listings are examples of how BoardEase works, not for rent. Photos are stand-ins (<Link href="/credits" className="underline hover:text-ink">credits</Link>).
+              </span>
+            </p>
+          )}
         </aside>
       )}
 
@@ -468,18 +476,20 @@ export function ExploreView() {
             {mobileFilters}
           </div>
 
-          <p className="flex items-start gap-2 rounded-md bg-[#fdf6e7] px-3 py-2 text-footnote text-warn">
-            <Info className="mt-0.5 size-4 shrink-0" />
-            <span>
-              <span className="font-semibold">Demo listings.</span> Examples that show how BoardEase works; not for rent. Photos are stand-ins of other places (<Link href="/credits" className="underline hover:text-ink">credits</Link>).
-            </span>
-          </p>
+          {hasDemo && (
+            <p className="flex items-start gap-2 rounded-md bg-[#fdf6e7] px-3 py-2 text-footnote text-warn">
+              <Info className="mt-0.5 size-4 shrink-0" />
+              <span>
+                <span className="font-semibold">Demo listings</span> are examples that show how BoardEase works; not for rent. Photos are stand-ins of other places (<Link href="/credits" className="underline hover:text-ink">credits</Link>).
+              </span>
+            </p>
+          )}
 
           {results.length ? (
             <>
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-body font-semibold text-ink sm:text-callout" aria-live="polite">
-                  <AnimatedCount value={results.length} /> demo {results.length === 1 ? "listing" : "listings"} within {filters.radiusKm} km
+                  <AnimatedCount value={results.length} /> {countNoun(results)} within {filters.radiusKm} km
                 </h2>
                 <SortMenu value={filters.sort} onChange={(sort) => setFilters({ sort })} />
               </div>
@@ -511,6 +521,7 @@ export function ExploreView() {
               onWiden={(radiusKm) => setFilters({ radiusKm })}
               onRaise={(budget) => setFilters({ budget })}
               onReset={() => setFilters({ ...DEFAULT_FILTERS })}
+              total={listings.length}
             />
           )}
 
@@ -677,8 +688,11 @@ function EmptyState({
   onRaise,
   onReset,
   inPanel = false,
+  total,
 }: {
   inPanel?: boolean;
+  /** Listings in the whole finder; 0 means nobody has published yet. */
+  total: number;
   filters: Filters;
   nextKm: number | null;
   nextBudget: number | null;
@@ -688,6 +702,23 @@ function EmptyState({
   onRaise: (budget: number) => void;
   onReset: () => void;
 }) {
+  if (total === 0)
+    return (
+      <div className={cn("flex flex-col items-start gap-3", inPanel ? "" : "be-contours rounded-xl p-6")}>
+        <h2 className="font-display text-title2 font-semibold tracking-[-0.015em]">No rooms listed yet</h2>
+        <p className="max-w-[52ch] text-body text-ink-2">
+          BoardEase is just starting in Davao City. Owners are adding their places now, and each listing appears here once it has been reviewed. We don&apos;t fill the map with made-up rooms.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/owners" className="inline-flex h-11 items-center rounded-md bg-clay px-4 text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]">
+            List your property
+          </Link>
+          <Link href="/how-it-works" className="inline-flex h-11 items-center rounded-md px-4 text-body font-medium text-ink-2 hover:bg-surface-2">
+            How BoardEase works
+          </Link>
+        </div>
+      </div>
+    );
   return (
     // Phone list: a textured card of its own. Desktop panel: sits directly in the panel (no card in a card)
     <div className={cn("flex flex-col items-start gap-3", inPanel ? "" : "be-contours rounded-xl p-6")}>
@@ -715,6 +746,12 @@ function EmptyState({
       </div>
     </div>
   );
+}
+
+/** "listings", "demo listings" or, when real and demo mix, plain "listings". */
+function countNoun(results: { demo: boolean }[]) {
+  const n = results.length === 1 ? "listing" : "listings";
+  return results.length && results.every((r) => r.demo) ? `demo ${n}` : n;
 }
 
 /** The result count rolls to its new value, so a filter change visibly lands. */

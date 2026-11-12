@@ -89,7 +89,13 @@ export function FeaturedListing({
 
         <ul className="flex flex-wrap gap-x-4 gap-y-2 rounded-lg bg-surface px-3 py-2.5 text-footnote text-ink-2" data-rise aria-label="Room details">
           <Spec icon={BedDouble}>{PROPERTY_TYPE_LABEL[listing.type]}</Spec>
-          <Spec icon={Users}>{listing.capacity === 1 ? "1 person" : `${listing.capacity} people`}</Spec>
+          <Spec icon={Users}>
+            {listing.freeSpaces !== undefined
+              ? `${listing.freeSpaces} ${listing.freeSpaces === 1 ? "space" : "spaces"} free`
+              : listing.capacity === 1
+                ? "1 person"
+                : `${listing.capacity} people`}
+          </Spec>
           <Spec icon={Bath}>{listing.bathroom === "private" ? "Own bath" : "Shared bath"}</Spec>
           {listing.sizeSqm && <Spec icon={Ruler}>{listing.sizeSqm} m²</Spec>}
         </ul>
@@ -100,6 +106,7 @@ export function FeaturedListing({
 
         <div className="mt-auto flex flex-col gap-3 pt-1" data-rise>
           <p className="flex items-baseline gap-1.5">
+            {listing.priceFrom && <span className="text-footnote text-subtle">from</span>}
             <span className="text-title2 font-semibold tabular-nums text-ink">{formatPeso(listing.monthlyPrice)}</span>
             <span className="text-footnote text-subtle">/ month</span>
           </p>

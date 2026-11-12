@@ -62,6 +62,7 @@ export const ListingCard = forwardRef<HTMLLIElement, Props>(function ListingCard
 
         <div className="flex flex-1 flex-col gap-0.5 px-3 pt-2.5 pb-3">
           <p className="text-callout font-semibold tabular-nums text-ink">
+            {listing.priceFrom && <span className="text-footnote font-normal text-subtle">from </span>}
             {formatPeso(listing.monthlyPrice)}
             <span className="text-footnote font-normal text-subtle"> / month</span>
           </p>

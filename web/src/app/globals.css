@@ -111,6 +111,9 @@
   --be-clay-soft: #f6e9e4;  /* derived tint: active chips, selection */
   --be-porcelain: #f7f4ee;  /* Warm Porcelain: landing canvas, warm surfaces */
   --be-limestone: #e7e1d7;  /* Limestone: borders, dividers, subtle layers */
+  /* Derived surfaces (mixes of the locked colours, not new hues): */
+  --be-paper: #fbf9f5;      /* Porcelain lifted toward white: hero top, top bar on marketing pages */
+  --be-stone-tint: #f0ebe3; /* Porcelain + Limestone: alternate section band */
   --be-garden: #497760;     /* Garden Green: real availability and success only */
   --be-garden-soft: #e8efea;
   --be-garden-ink: #3d6450;   /* derived: Garden text on garden-soft passes 4.5:1 */
@@ -403,11 +406,6 @@ a { text-underline-offset: 3px; }
 }
 .be-reveal-ready h2[data-reveal][data-shown] { clip-path: inset(0 0 -12% 0); }
 
-/* Landing scroll story (components/landing/story-section.tsx). The markup is the finished state;
-   these rules apply only while the story is animating (motion allowed, JavaScript running). */
-.be-story-ready [data-chapter] { opacity: 0.28; transition: opacity 420ms cubic-bezier(0.23, 1, 0.32, 1); }
-.be-story-ready [data-chapter][data-active] { opacity: 1; }
-
 /* Hero entrance (landing only). Lead moves furthest, support less, labels barely; 0.5-0.7s,
    100-ish ms steps (Emil Kowalski, choreograph). CSS only, so it never waits on JavaScript. */
 @keyframes be-rise {
@@ -420,3 +418,92 @@ a { text-underline-offset: 3px; }
 }
 .be-enter { animation: be-rise 560ms cubic-bezier(0.23, 1, 0.32, 1) var(--d, 0ms) both; }
 .be-settle { animation: be-settle 760ms cubic-bezier(0.23, 1, 0.32, 1) var(--d, 0ms) both; }
+
+/* Architectural editorial landing (2026-11-12). Straight-edged photos; motion is transform, opacity
+   and clip-path only. Reduced motion: the global rule above makes every animation instant. */
+
+/* Hero photo opens upward once while the photo settles out of a slight zoom */
+@keyframes be-unveil { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes be-unveil-img { from { scale: 1.14; } to { scale: 1; } }
+.be-unveil { animation: be-unveil 1100ms cubic-bezier(0.77, 0, 0.175, 1) var(--d, 0ms) both; }
+.be-unveil img { animation: be-unveil-img 1500ms cubic-bezier(0.23, 1, 0.32, 1) var(--d, 0ms) both; }
+
+/* Editorial photos answer a pointer with a slow, small push-in inside a fixed frame */
+.be-photo img { transition: scale 900ms cubic-bezier(0.23, 1, 0.32, 1); }
+.be-hover:focus-visible .be-photo { outline: 2px solid var(--color-clay); outline-offset: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .be-hover:hover .be-photo img { scale: 1.035; }
+}
+
+/* Finder showcase: the chosen screenshot wipes in from the left over the previous one, which
+   stays underneath until the wipe ends. Phones crop each shot to its focus point. */
+.be-shot {
+  z-index: 0;
+  opacity: 0;
+  clip-path: inset(0 100% 0 0);
+  object-position: var(--focus, 50% 50%);
+  transition: opacity 0s linear 680ms, clip-path 0s linear 680ms;
+}
+.be-shot.be-shot-on {
+  z-index: 1;
+  opacity: 1;
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 680ms cubic-bezier(0.77, 0, 0.175, 1);
+}
+@media (min-width: 640px) { .be-shot { object-position: 50% 50%; } }
+
+/* Reduced motion keeps the reveals as plain opacity fades: no movement, no masks, no zoom
+   (WCAG 2.3.3 targets motion; fades are allowed). Overrides the global 1ms rule above by specificity. */
+@keyframes be-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .be-reveal-ready.be-reduced [data-reveal] {
+    translate: none !important;
+    clip-path: none !important;
+    transition: opacity 700ms cubic-bezier(0.23, 1, 0.32, 1) var(--reveal-delay, 0ms) !important;
+  }
+  .be-enter, .be-settle, .be-unveil { animation: be-fade-in 700ms cubic-bezier(0.23, 1, 0.32, 1) var(--d, 0ms) both !important; }
+  .be-unveil img { animation: none !important; }
+  .be-shot { clip-path: none !important; transition: opacity 0s linear 450ms !important; }
+  .be-shot.be-shot-on { transition: opacity 450ms cubic-bezier(0.23, 1, 0.32, 1) !important; }
+}
+
+/* ---------- Surface system (2026-11-12): paper hero, stone band, white demo, warm Ink close ---------- */
+
+/* Hero canvas: paper fading into Porcelain, with a faint warm light behind the headline */
+.be-canvas {
+  background:
+    radial-gradient(ellipse 50% 65% at 20% 45%, rgb(180 70 48 / 0.05), transparent 72%),
+    linear-gradient(180deg, var(--be-paper) 0%, var(--be-porcelain) 100%);
+}
+/* Architectural column lines: six 1px rules at 4.5% ink, fading out downward. Text side only. */
+.be-columns {
+  background-image: linear-gradient(to right, rgb(32 42 40 / 0.045) 1px, transparent 1px);
+  background-size: calc(100% / 6) 100%;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 92%);
+}
+.be-stone { background: var(--be-stone-tint); }
+/* Closing: Deep Ink with a low warm glow rising from the lower left, like light across a dark wall */
+.be-ink-warm {
+  background:
+    radial-gradient(ellipse 55% 75% at 12% 115%, rgb(180 70 48 / 0.2), transparent 70%),
+    radial-gradient(ellipse 40% 50% at 95% -10%, rgb(247 244 238 / 0.05), transparent 70%),
+    var(--be-ink);
+}
+
+/* Invisible top bar (site-header.tsx, useBarSurface): it takes the colour of the section about to slide
+   under it, so it never reads as a bar. Over Ink: light text, light logo tile; the active link keeps
+   the brand clay. Colour only, so each switch reads as a quick fade. */
+.be-bar { transition: background-color 200ms linear; }
+.be-bar[data-surface="paper"] { background-color: var(--be-paper); }
+.be-bar[data-surface="stone"] { background-color: var(--be-stone-tint); }
+.be-bar[data-surface="white"] { background-color: #ffffff; }
+.be-bar[data-surface="ink"] { background-color: var(--be-ink); }
+.be-bar :is(a, button, span) { transition-property: color, background-color, box-shadow, opacity; transition-duration: 300ms; }
+.be-bar .be-logo-mark :is(rect, path) { transition: fill 300ms; }
+.be-bar[data-surface="ink"] :is(a, button):not([aria-current="page"]) { color: rgb(247 244 238 / 0.82); }
+.be-bar[data-surface="ink"] :is(a, button):not([aria-current="page"]):hover { color: var(--be-porcelain); }
+.be-bar[data-surface="ink"] .be-logo-mark rect { fill: var(--be-porcelain); }
+.be-bar[data-surface="ink"] .be-logo-mark path { fill: var(--be-ink); }
+.be-bar[data-surface="ink"] [aria-label^="Account menu"]:not(.bg-ink) { box-shadow: inset 0 0 0 1px rgb(247 244 238 / 0.35); }
+.be-bar[data-surface="ink"] [aria-label^="Account menu"].bg-ink { background: var(--be-porcelain); color: var(--be-ink); }
+.be-bar[data-surface="ink"] .bg-ink\/12 { background: rgb(247 244 238 / 0.2); }

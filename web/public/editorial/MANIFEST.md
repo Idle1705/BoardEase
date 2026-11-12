@@ -16,3 +16,12 @@ License for every row: [Unsplash License](https://unsplash.com/license): free fo
 | `bed-by-windows.jpg` | Devin Kleu (@dkleu) | https://unsplash.com/photos/empty-bed-beside-windows-during-daytime-4jjzDlartfA | Spare (not placed yet) | Editorial |
 
 Demo listing photos (`/public/demo/photos`) are Wikimedia Commons stand-ins with their own credits on `/credits`; they are labelled "Demo" everywhere they appear.
+
+## Placement since 2026-11-12 (architectural landing)
+
+- `cta-corridor.jpg`: hero. `hero-room.jpg`, `renter-room.jpg`: statement photo pair. `owner-street.jpg`: owners. `hero-building.jpg`: dark closing section. `bed-by-windows.jpg`: still spare.
+- `interface/finder-*.jpg`: our own screenshots of `/find` with demo listings (1440x900 @1.5x, header cropped, Next dev badge removed), captured 2026-11-12. Re-capture when the finder changes.
+
+## Placement since the minimal landing (2026-11-12)
+
+- `cta-corridor.jpg`: hero. `hero-room.jpg`: "Find a space." panel. `owner-street.jpg`: "List your property." panel. `hero-building.jpg`: closing section. `renter-room.jpg`, `bed-by-windows.jpg`: spare.

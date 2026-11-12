@@ -1,5 +1,7 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { ExploreView } from "@/components/explore/explore-view";
+import { getFinderListings } from "@/server/marketplace/finder";
 
 export const metadata = {
   title: "Find a room",
@@ -17,7 +19,13 @@ export default function FindPage() {
         </main>
       }
     >
-      <ExploreView />
+      <Finder />
     </Suspense>
   );
+}
+
+/** Live inventory on every request: availability changes as owners update rooms. */
+async function Finder() {
+  await connection();
+  return <ExploreView listings={await getFinderListings()} />;
 }

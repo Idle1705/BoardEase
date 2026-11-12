@@ -1,308 +1,206 @@
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
-import { ArrowRight, MapPin } from "lucide-react";
-import { DEMO_LISTINGS } from "@/data/demo-listings";
-import { formatPeso } from "@/lib/format";
-import { PROPERTY_TYPE_LABEL } from "@/lib/listing-types";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SiteFooter } from "@/components/site-footer";
 import { RevealRoot } from "./reveal";
-import { StorySection } from "./story-section";
 import { ScrollScenes } from "./scroll-scenes";
 import { JourneyProgress } from "./journey-progress";
-import heroRoom from "../../../public/editorial/hero-room.jpg";
-import heroBuilding from "../../../public/editorial/hero-building.jpg";
-import renterRoom from "../../../public/editorial/renter-room.jpg";
-import ownerStreet from "../../../public/editorial/owner-street.jpg";
-import ctaCorridor from "../../../public/editorial/cta-corridor.jpg";
+import { FinderShowcase } from "./finder-showcase";
+import corridor from "../../../public/editorial/cta-corridor.jpg";
+import deskRoom from "../../../public/editorial/hero-room.jpg";
+import apartmentBlock from "../../../public/editorial/owner-street.jpg";
+import facade from "../../../public/editorial/hero-building.jpg";
 
 /*
- * Landing page. Art direction and the reasons for each section: docs/web/DESIGN_SYSTEM.md, "Landing page".
- * Editorial photos are Unsplash (public/editorial/MANIFEST.md) and never stand for a listing.
+ * Landing page: minimal architectural editorial (docs/web/DESIGN_SYSTEM.md, "Minimal editorial landing").
+ * Four parts: hero, two ways to begin, discover nearby, closing. Photography carries the story; text is
+ * kept to headlines and one line each. Photos are Unsplash editorial images (public/editorial/MANIFEST.md)
+ * and never stand for a listing; the showcase uses real finder screenshots with demo listings.
  */
 
-const WRAP = "mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-10";
+export const WRAP = "mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-10";
+export const NOT_A_LISTING = "Editorial photo, not a listing";
 
 export function LandingPage() {
   return (
     <RevealRoot className="flex-1 overflow-y-auto overflow-x-clip bg-porcelain">
-      {/* One continuous daylight field behind the hero and the intro, so the light never ends at a seam */}
-      <div className="be-daylight">
-        <Hero />
-        <WhatIs />
-      </div>
+      <Hero />
       <TwoWays />
-      <StorySection />
-      <HowItWorks />
-      <WhyBoardEase />
+      <Nearby />
       <FinalCta />
-      <SiteFooter />
+      <SiteFooter compact />
       <ScrollScenes />
     </RevealRoot>
   );
 }
 
-/* ---------------------------------------------------------------- Hero */
+/*
+ * A straight-edged photograph. The frame opens through a mask as it scrolls in (`data-scene=mask`)
+ * and the photo drifts a few percent inside it (`data-drift`); both are off under reduced motion.
+ */
+export function Frame({
+  src,
+  alt,
+  sizes,
+  className,
+  priority,
+  position,
+}: {
+  src: StaticImageData;
+  alt: string;
+  sizes: string;
+  className?: string;
+  priority?: boolean;
+  position?: string;
+}) {
+  return (
+    <div data-scene="mask" className={cn("be-photo relative overflow-hidden bg-limestone", className)}>
+      <Image
+        data-drift
+        src={src}
+        alt={alt}
+        fill
+        sizes={sizes}
+        placeholder="blur"
+        priority={priority}
+        className="object-cover"
+        style={position ? { objectPosition: position } : undefined}
+      />
+    </div>
+  );
+}
+
+export const BTN_PRIMARY =
+  "group inline-flex h-13 items-center gap-2.5 rounded-md bg-clay px-6 text-[17px] font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]";
+
+/* ---------------------------------------------------------------- 1. Hero */
 
 function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="relative isolate overflow-hidden">
-      {/* Drafting lines: architectural, very faint, only behind the photographs */}
-      <div aria-hidden className="be-drafting pointer-events-none absolute inset-y-0 right-0 -z-10 w-full lg:w-[62%]" />
-      <div className={cn(WRAP, "grid items-center gap-x-10 gap-y-12 pt-12 pb-16 sm:pt-16 lg:min-h-[min(760px,calc(100dvh-64px))] lg:grid-cols-12 lg:py-20")}>
-        <div className="lg:col-span-6">
+    <section aria-labelledby="hero-title" data-bar="paper" className="be-canvas relative isolate pb-20 lg:pb-28">
+      {/* Column rules start at the headline edge and stop before the photo */}
+      <div aria-hidden className="be-columns pointer-events-none absolute inset-y-0 right-1/2 left-[max(2.5rem,calc((100vw-1320px)/2+2.5rem))] -z-10 hidden border-r border-ink/[0.045] lg:block" />
+      {/* Split: text sits on the page grid's left edge; the photo runs to the right edge of the screen (FORMA) */}
+      <div className="grid gap-y-10 lg:grid-cols-2 lg:items-end">
+        <div className="px-5 pt-10 sm:px-8 sm:pt-14 lg:pt-0 lg:pr-14 lg:pb-14 lg:pl-[max(2.5rem,calc((100vw-1320px)/2+2.5rem))]">
           <h1
             id="hero-title"
-            className="be-enter font-display text-display font-semibold text-balance text-ink"
-            style={{ ["--rise" as string]: "18px" }}
+            className="be-enter font-display text-[clamp(3rem,1rem+4.9vw,5.25rem)] leading-[0.95] font-semibold tracking-[-0.04em] text-balance text-ink"
+            style={{ ["--rise" as string]: "22px" }}
           >
             Your next room, closer than you think.
           </h1>
-          <p className="be-enter mt-6 max-w-[34rem] text-lead text-ink-2" style={{ ["--d" as string]: "110ms" }}>
-            Find boarding houses, dorms, and rental spaces near your school or workplace. Compare prices, locations, and
-            amenities before you inquire.
+          <p className="be-enter mt-7 text-lead text-ink-2" style={{ ["--d" as string]: "110ms" }}>
+            Find rooms and boarding houses near you.
           </p>
-          <div className="be-enter mt-9 flex flex-wrap gap-3" style={{ ["--d" as string]: "190ms", ["--rise" as string]: "8px" }}>
-            <Link
-              href="/find"
-              className="group inline-flex h-13 items-center gap-2.5 rounded-md bg-clay px-6 text-[17px] font-semibold text-white shadow-[0_10px_24px_-12px_rgb(180_70_48/0.7)] transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]"
-            >
+          <div className="be-enter mt-10 flex flex-wrap gap-3" style={{ ["--d" as string]: "190ms", ["--rise" as string]: "8px" }}>
+            <Link href="/find" className={BTN_PRIMARY}>
               Looking for a Board?
               <ArrowRight className="size-[18px] transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.2} />
             </Link>
             <Link
               href="/owners"
-              className="inline-flex h-13 items-center rounded-md bg-white px-6 text-[17px] font-semibold text-ink ring-1 ring-ink/15 transition-[background-color,scale] duration-150 hover:bg-porcelain active:scale-[0.97]"
+              className="inline-flex h-13 items-center rounded-md px-6 text-[17px] font-semibold text-ink ring-1 ring-ink/20 transition-[background-color,scale] duration-150 hover:bg-white active:scale-[0.97]"
             >
               List Your Property
             </Link>
           </div>
-          <p className="be-enter mt-8 max-w-[34rem] border-t border-limestone pt-5 text-footnote text-subtle" style={{ ["--d" as string]: "260ms", ["--rise" as string]: "6px" }}>
-            Bedspaces, dorms, boarding houses and apartments in Davao City, with rent shown per month.
-          </p>
         </div>
 
-        <HeroPhotos />
+        {/* One dominant photograph: opens upward once on load (CSS), then drifts gently as the hero leaves */}
+        <figure className="px-5 sm:px-8 lg:px-0">
+          <div
+            data-scene="hero-photo"
+            className="be-unveil relative aspect-[4/5] overflow-hidden bg-limestone sm:aspect-[5/4] lg:aspect-auto lg:h-[min(calc(100dvh-120px),860px)]"
+            style={{ ["--d" as string]: "100ms" }}
+          >
+            <Image
+              src={corridor}
+              alt="An open-air corridor along a row of rooms in a low-rise residence, lit by afternoon sun"
+              fill
+              priority
+              placeholder="blur"
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="object-cover object-[50%_60%]"
+            />
+          </div>
+          <figcaption className="mt-3 text-caption text-subtle lg:pr-10">{NOT_A_LISTING}</figcaption>
+        </figure>
       </div>
     </section>
   );
 }
 
-function HeroPhotos() {
-  return (
-    <div className="relative lg:col-span-6 lg:col-start-7">
-      <div className="relative ml-auto aspect-[4/5] w-full max-w-[520px] sm:w-[78%] lg:w-[82%]">
-        {/* Main anchor: a lived-in single room in natural light */}
-        <div data-scene="hero-main" className="be-settle absolute inset-0 overflow-hidden rounded-[28px] shadow-xl" style={{ ["--d" as string]: "80ms" }}>
-          <Image
-            src={heroRoom}
-            alt="A small bedroom with a wooden wall, a desk under the window and a white chair"
-            fill
-            priority
-            placeholder="blur"
-            sizes="(min-width: 1024px) 520px, (min-width: 640px) 78vw, 100vw"
-            className="object-cover"
-          />
-        </div>
+/* ---------------------------------------------------------------- 2. Two ways to begin */
 
-        {/* Location label: what the map would tell you */}
-        <p
-          className="be-enter absolute top-5 left-5 inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-2 text-footnote font-medium text-ink shadow-md"
-          style={{ ["--d" as string]: "420ms", ["--rise" as string]: "6px" }}
-        >
-          <MapPin className="size-3.5 text-clay" strokeWidth={2.2} />
-          Near University of Mindanao, Matina
-        </p>
-
-        {/* Illustrative price card, clearly labelled */}
-        <div
-          data-scene="hero-card"
-          className="be-enter absolute right-4 -bottom-7 w-[220px] rounded-2xl bg-white p-4 shadow-lg ring-1 ring-ink/5 sm:-right-6"
-          style={{ ["--d" as string]: "500ms", ["--rise" as string]: "10px" }}
-        >
-          <p className="text-caption font-medium text-subtle">Example listing</p>
-          <p className="mt-1 flex items-baseline gap-1">
-            <span className="text-title2 font-semibold tabular-nums text-ink">₱4,500</span>
-            <span className="text-footnote text-subtle">/ month</span>
-          </p>
-          <p className="mt-0.5 text-footnote text-ink-2">Private room, 1.0 km away</p>
-        </div>
-      </div>
-
-      {/* Supporting image: the building, set against the room for scale */}
-      <div
-        data-scene="hero-back"
-        className="be-settle absolute -bottom-10 left-0 hidden aspect-[3/4] w-[34%] max-w-[230px] overflow-hidden rounded-[22px] shadow-lg ring-8 ring-porcelain sm:block"
-        style={{ ["--d" as string]: "200ms" }}
-      >
-        <Image
-          src={heroBuilding}
-          alt="A low-rise apartment building with warm ochre walls among trees"
-          fill
-          placeholder="blur"
-          sizes="230px"
-          className="object-cover"
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------- What is BoardEase */
-
-function WhatIs() {
-  const card = DEMO_LISTINGS.find((l) => l.id === "demo-matina-private-desk") ?? DEMO_LISTINGS[0];
-  return (
-    <section aria-labelledby="what-title" className="pt-24 pb-24 sm:pt-32">
-      <div className={cn(WRAP, "grid gap-14 lg:grid-cols-12 lg:gap-10")}>
-        <div className="lg:col-span-5" data-reveal>
-          <h2 id="what-title" className="font-display text-section font-semibold text-balance text-ink">
-            Two sides of renting, in one place.
-          </h2>
-          <p className="mt-6 max-w-[36rem] text-prose text-ink-2">
-            Renters search a map of rooms near where they study or work, and see the monthly rent before they ask.
-          </p>
-          <p className="mt-4 max-w-[36rem] text-prose text-ink-2">
-            Owners keep their rooms, beds and tenants in one place, and publish only what they want renters to see.
-          </p>
-        </div>
-
-        {/* Interface excerpts: what each side actually sees */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:col-span-7 lg:col-start-6 lg:pl-6">
-          <figure data-reveal className="flex flex-col">
-            <div className="overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-ink/5">
-              <div className="relative aspect-[16/10] bg-surface">
-                <Image src={`${card.photos[0].src}.webp`} alt="" fill sizes="(min-width: 640px) 320px, 100vw" className="object-cover" />
-                <span className="absolute top-2.5 left-2.5 rounded-sm bg-white/95 px-2 py-0.5 text-caption font-semibold text-warn">Demo</span>
-              </div>
-              <div className="px-4 pt-3 pb-4">
-                <p className="text-callout font-semibold tabular-nums text-ink">
-                  {formatPeso(card.monthlyPrice)} <span className="text-footnote font-normal text-subtle">/ month</span>
-                </p>
-                <p className="mt-0.5 text-body text-ink">{card.title}</p>
-                <p className="mt-1 text-footnote text-subtle">
-                  {PROPERTY_TYPE_LABEL[card.type]}, {card.district}
-                </p>
-              </div>
-            </div>
-            <figcaption className="mt-3 text-footnote text-subtle">
-              <span className="font-semibold text-ink">What renters see.</span> Rent, room type and area first.
-            </figcaption>
-          </figure>
-
-          <figure data-reveal style={{ ["--reveal-delay" as string]: "90ms" }} className="flex flex-col sm:mt-14">
-            <div className="rounded-2xl bg-white p-4 shadow-md ring-1 ring-ink/5">
-              <p className="text-footnote font-semibold text-ink">Rooms</p>
-              <table className="mt-3 w-full text-left text-footnote">
-                <caption className="sr-only">Example room inventory</caption>
-                <thead className="text-subtle">
-                  <tr className="border-b border-limestone">
-                    <th scope="col" className="pb-2 font-medium">Room</th>
-                    <th scope="col" className="pb-2 text-right font-medium">Beds</th>
-                    <th scope="col" className="pb-2 text-right font-medium">Free</th>
-                  </tr>
-                </thead>
-                <tbody className="tabular-nums text-ink">
-                  {[
-                    ["Room 1, single", 1, 0],
-                    ["Room 2, shared", 3, 1],
-                    ["Room 3, shared", 2, 2],
-                  ].map(([room, beds, free]) => (
-                    <tr key={room as string} className="border-b border-limestone/70 last:border-0">
-                      <td className="py-2.5">{room}</td>
-                      <td className="py-2.5 text-right">{beds}</td>
-                      <td className="py-2.5 text-right">
-                        <span className={cn("inline-flex min-w-6 justify-center rounded-sm px-1.5 font-semibold", (free as number) > 0 ? "bg-garden-soft text-garden-ink" : "text-subtle")}>
-                          {free}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <figcaption className="mt-3 text-footnote text-subtle">
-              <span className="font-semibold text-ink">What owners manage.</span> Beds per room, so one full room never hides
-              the free ones. Example data.
-            </figcaption>
-          </figure>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------------- Two ways */
+const WAYS = [
+  {
+    href: "/find",
+    title: "Find a space.",
+    line: "Rooms, bedspaces and dorms on one map, with the monthly rent.",
+    src: deskRoom,
+    alt: "A small bedroom with a desk under the window and a white chair",
+    position: "50% 55%",
+  },
+  {
+    href: "/owners",
+    title: "List your property.",
+    line: "Add your rooms and beds, and choose what renters see.",
+    src: apartmentBlock,
+    alt: "A mid-rise apartment block with trees along a paved walkway",
+    position: "40% 50%",
+  },
+] as const;
 
 function TwoWays() {
-  const renterFilters: [string, boolean][] = [
-    ["Location", true],
-    ["Budget", true],
-    ["Distance", true],
-    ["Room type", true],
-    ["Amenities", false],
-    ["Availability", false],
-  ];
-  const ownerTypes = ["Dormitories", "Boarding houses", "Bedspaces", "Apartments", "Rental rooms"];
   return (
-    <section aria-labelledby="ways-title" className="bg-white py-24 sm:py-28">
-      <div className={WRAP}>
-        <h2 id="ways-title" data-reveal className="max-w-[18ch] font-display text-section font-semibold text-balance text-ink">
-          Two ways to use BoardEase.
-        </h2>
-
-        <div className="mt-12 grid gap-6 lg:grid-cols-12">
-          {/* Renters: light, photo-led */}
-          <article data-reveal className="flex flex-col overflow-hidden rounded-[28px] bg-porcelain ring-1 ring-limestone lg:col-span-7">
-            <div data-scene="wipe" data-radius="0" className="relative aspect-[16/9] overflow-hidden lg:aspect-[16/10]">
-              <Image src={renterRoom} alt="A single bed by a window with an orange cushion" fill placeholder="blur" sizes="(min-width: 1024px) 700px, 100vw" className="object-cover" />
-            </div>
-            <div className="flex flex-1 flex-col p-7 sm:p-9">
-              <h3 className="font-display text-[28px] leading-tight font-semibold tracking-[-0.015em] text-ink">For renters</h3>
-              <p className="mt-3 max-w-[40ch] text-prose text-ink-2">Find a place by what matters to you, and see the rent before you message anyone.</p>
-              <ul className="mt-6 flex flex-wrap gap-2" aria-label="Search by">
-                {renterFilters.map(([f, live]) => (
-                  <li
-                    key={f}
-                    className={cn(
-                      "inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-footnote font-medium",
-                      live ? "bg-white text-ink ring-1 ring-limestone" : "border border-dashed border-ink/25 text-subtle",
-                    )}
-                  >
-                    {f}
-                    {!live && <span className="text-caption">(soon)</span>}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8 lg:mt-auto lg:pt-8">
-                <Link href="/find" className="inline-flex h-12 items-center gap-2 rounded-md bg-clay px-5 text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]">
-                  Find a Board <ArrowRight className="size-4" strokeWidth={2.2} />
-                </Link>
+    <section aria-labelledby="ways-title" data-bar="stone" className="be-stone py-24 sm:py-32">
+      <h2 id="ways-title" className="sr-only">
+        Two ways to begin
+      </h2>
+      {/* Editorial spread: two tall panels, the second set lower, so the eye reads them as a pair */}
+      <div className={cn(WRAP, "grid gap-x-10 gap-y-16 sm:grid-cols-2 lg:gap-x-16")}>
+        {WAYS.map((w, i) => (
+          <Link key={w.href} href={w.href} className={cn("be-hover group block outline-none", i === 1 && "sm:mt-28 lg:mt-40")}>
+            <Frame src={w.src} alt={w.alt} position={w.position} sizes="(min-width: 640px) 50vw, 100vw" className="aspect-[4/5]" />
+            <div className="mt-6 flex items-start justify-between gap-6" data-reveal>
+              <div>
+                <h3 className="font-display text-[clamp(1.75rem,1.1rem+1.6vw,2.5rem)] leading-[1.05] font-semibold tracking-[-0.03em] text-ink underline-offset-[6px] decoration-[1.5px] group-hover:underline group-focus-visible:underline">
+                  {w.title}
+                </h3>
+                <p className="mt-2.5 max-w-[34ch] text-body text-ink-2">{w.line}</p>
               </div>
+              <span
+                aria-hidden
+                className="mt-1 grid size-11 shrink-0 place-items-center rounded-full ring-1 ring-ink/20 transition-[background-color,color,rotate] duration-300 group-hover:rotate-45 group-hover:bg-clay group-hover:text-white group-hover:ring-clay"
+              >
+                <ArrowUpRight className="size-5" strokeWidth={2} />
+              </span>
             </div>
-          </article>
+            <p className="mt-3 text-caption text-subtle">{NOT_A_LISTING}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-          {/* Owners: Limestone, type-led, the photo set smaller */}
-          <article data-reveal style={{ ["--reveal-delay" as string]: "100ms" }} className="flex flex-col rounded-[28px] bg-limestone/55 p-7 ring-1 ring-limestone sm:p-9 lg:col-span-5">
-            <h3 className="font-display text-[28px] leading-tight font-semibold tracking-[-0.015em] text-ink">For property owners</h3>
-            <p className="mt-3 max-w-[38ch] text-prose text-ink-2">Advertise your rooms and keep track of who lives where.</p>
-            <ul className="mt-7 divide-y divide-ink/10 border-y border-ink/10">
-              {ownerTypes.map((t) => (
-                <li key={t} className="flex items-center justify-between py-3 text-body text-ink">
-                  {t}
-                  <span aria-hidden className="size-1.5 rounded-full bg-clay/70" />
-                </li>
-              ))}
-            </ul>
-            <div data-scene="wipe" data-radius="16" className="relative mt-7 aspect-[16/9] overflow-hidden rounded-2xl">
-              <Image src={ownerStreet} alt="A mid-rise apartment block with trees along a paved walkway" fill placeholder="blur" sizes="(min-width: 1024px) 460px, 100vw" className="object-cover" />
-            </div>
-            <div className="mt-8 lg:mt-auto lg:pt-8">
-              <Link href="/owners" className="inline-flex h-12 items-center gap-2 rounded-md bg-ink px-5 text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-ink-2 active:scale-[0.97]">
-                List Your Property <ArrowRight className="size-4" strokeWidth={2.2} />
-              </Link>
-            </div>
-          </article>
+/* ---------------------------------------------------------------- 3. Discover nearby */
+
+function Nearby() {
+  return (
+    <section aria-labelledby="nearby-title" data-bar="white" className="bg-white py-20 sm:py-28">
+      <div className={WRAP}>
+        <h2
+          id="nearby-title"
+          data-reveal
+          className="font-display text-[clamp(2.25rem,1.2rem+2.8vw,3.75rem)] leading-[1] font-semibold tracking-[-0.035em] text-ink"
+        >
+          Closer to what matters.
+        </h2>
+        <div className="mt-12 sm:mt-14">
+          <FinderShowcase />
         </div>
       </div>
     </section>
@@ -374,85 +272,51 @@ function Journey({ title, steps, level: H = "h3" }: { title: string; steps: stri
   );
 }
 
-/* ---------------------------------------------------------------- Why BoardEase */
+/* ---------------------------------------------------------------- 4. Closing */
 
-const NOW = [
-  ["Map-based search", "Rooms placed on a map around the place you search, inside the distance you set."],
-  ["Budget and room-type filters", "Only see what you can afford, and the kind of space you want."],
-  ["Saved listings", "Keep a shortlist on your device while you compare."],
-  ["Renter and owner accounts", "Sign up as a renter or an owner, with your own account page."],
-];
-const NEXT = [
-  ["Room availability", "Free beds shown from each owner's real occupancy, not a guess."],
-  ["Direct inquiries", "Message an owner and arrange a viewing inside BoardEase."],
-  ["Property management", "Properties, rooms, beds and tenants for owners."],
-  ["Rental billing", "Rent, electricity and water split per room, from the original BoardEase desktop app."],
-];
+type CtaLink = { href: string; label: string };
 
-function WhyBoardEase() {
+/** Deep Ink closing. Also used by /how-it-works and /owners with their own wording. */
+export function FinalCta({
+  title = "Find a room. Or fill one.",
+  primary = { href: "/find", label: "Find a Board" },
+  secondary = { href: "/owners", label: "List Your Property" },
+  photo = facade,
+  alt = "The ochre facade of a low-rise apartment building between trees",
+}: { title?: string; primary?: CtaLink; secondary?: CtaLink; photo?: StaticImageData; alt?: string } = {}) {
   return (
-    <section aria-labelledby="why-title" className="pb-28 sm:pb-32">
-      <div className={cn(WRAP, "grid gap-12 border-t border-limestone pt-20 lg:grid-cols-12")}>
-        <div className="lg:col-span-4" data-reveal>
-          <h2 id="why-title" className="font-display text-section font-semibold text-balance text-ink">
-            Why BoardEase
+    <section aria-labelledby="cta-title" data-bar="ink" className="be-ink-warm overflow-hidden text-porcelain">
+      <div className={cn(WRAP, "grid gap-x-12 gap-y-14 py-20 sm:py-28 lg:grid-cols-12 lg:items-end")}>
+        <div className="lg:col-span-7 lg:pb-4" data-reveal>
+          <span aria-hidden data-scene="cta-bar" className="block h-1 w-12 origin-left bg-clay" />
+          <h2
+            id="cta-title"
+            className="mt-10 font-display text-[clamp(2.75rem,1rem+5.4vw,6.25rem)] leading-[0.95] font-semibold tracking-[-0.042em] text-balance"
+          >
+            {title}
           </h2>
-          <p className="mt-5 max-w-[32ch] text-prose text-ink-2">What works today, and what we are building next. We will not promise more than that.</p>
-        </div>
-        <div className="grid gap-12 sm:grid-cols-2 lg:col-span-8">
-          <FeatureList title="Working today" tone="now" items={NOW} />
-          <FeatureList title="In development" tone="next" items={NEXT} />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FeatureList({ title, tone, items }: { title: string; tone: "now" | "next"; items: string[][] }) {
-  return (
-    <div data-reveal>
-      <h3 className="flex items-center gap-2 text-footnote font-semibold text-ink">
-        <span aria-hidden className={cn("size-2 rounded-full", tone === "now" ? "bg-garden" : "bg-limestone ring-1 ring-ink/20")} />
-        {title}
-      </h3>
-      <ul className="mt-4 border-t border-ink/15">
-        {items.map(([head, body]) => (
-          <li key={head} className="border-b border-ink/10 py-5">
-            <p className="text-callout font-semibold text-ink">{head}</p>
-            <p className="mt-1 text-body text-ink-2">{body}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------- Final CTA */
-
-export function FinalCta() {
-  return (
-    <section aria-labelledby="cta-title" className="bg-ink text-porcelain">
-      <div className={cn(WRAP, "grid items-center gap-12 py-20 sm:py-24 lg:grid-cols-12")}>
-        <div className="lg:col-span-6" data-reveal>
-          <span aria-hidden data-scene="cta-bar" className="block h-1 w-12 origin-left rounded-full bg-clay" />
-          <h2 id="cta-title" className="mt-8 font-display text-section font-semibold text-balance">
-            Find a room, or fill one.
-          </h2>
-          <p className="mt-5 max-w-[36ch] text-prose text-porcelain/80">
-            Start with the map if you are looking. Start with your rooms if you are renting them out.
-          </p>
-          <div className="mt-9 flex flex-wrap gap-3">
-            <Link href="/find" className="inline-flex h-13 items-center gap-2.5 rounded-md bg-clay px-6 text-[17px] font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]">
-              Looking for a Board? <ArrowRight className="size-[18px]" strokeWidth={2.2} />
+          <div className="mt-11 flex flex-wrap gap-3">
+            <Link href={primary.href} className={BTN_PRIMARY}>
+              {primary.label}
+              <ArrowRight className="size-[18px] transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.2} />
             </Link>
-            <Link href="/owners" className="inline-flex h-13 items-center rounded-md px-6 text-[17px] font-semibold text-porcelain ring-1 ring-porcelain/30 transition-[background-color,scale] duration-150 hover:bg-porcelain/10 active:scale-[0.97]">
-              List Your Property
+            <Link
+              href={secondary.href}
+              className="inline-flex h-13 items-center rounded-md px-6 text-[17px] font-semibold text-porcelain ring-1 ring-porcelain/30 transition-[background-color,scale] duration-150 hover:bg-porcelain/10 active:scale-[0.97]"
+            >
+              {secondary.label}
             </Link>
           </div>
         </div>
-        <div data-scene="cta-photo" className="relative aspect-[4/3] overflow-hidden rounded-[28px] lg:col-span-6" data-reveal>
-          <Image src={ctaCorridor} alt="An open-air corridor of a residential building, lit by afternoon sun" fill placeholder="blur" sizes="(min-width: 1024px) 560px, 100vw" className="object-cover" />
-        </div>
+        <figure className="w-[80%] justify-self-end sm:w-[56%] lg:col-span-5 lg:w-full">
+          <Frame
+            src={photo}
+            alt={alt}
+            sizes="(min-width: 1024px) 500px, 80vw"
+            className="aspect-[4/5]"
+          />
+          <figcaption className="mt-3 text-caption text-porcelain/55">{NOT_A_LISTING}</figcaption>
+        </figure>
       </div>
     </section>
   );

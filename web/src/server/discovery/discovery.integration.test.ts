@@ -68,7 +68,7 @@ beforeAll(async () => {
   ids.room = r.id;
   const [l] = await db
     .insert(s.listings)
-    .values({ roomId: r.id, ownerId: owner.id, title: `[TEST] Shared room ${tag}`, description: "Test", type: "bedspace", monthlyPriceCents: 300000, bathroom: "shared", status: "published", moderation: "approved", publishedAt: new Date() })
+    .values({ roomId: r.id, ownerId: owner.id, title: `[TEST] Shared room ${tag}`, description: "Test", type: "bedspace", monthlyPriceCents: 300000, bathroom: "shared", status: "published", moderation: "approved", publishedAt: new Date(), availabilityConfirmedAt: new Date() })
     .returning({ id: s.listings.id });
   ids.listing = l.id;
 });

@@ -3,16 +3,18 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Scroll reveal for the landing page. Everything is visible by default (no JavaScript, reduced
- * motion, or before hydration). Only when motion is allowed does this add `.be-reveal-ready`, which
- * hides `[data-reveal]` blocks until they scroll into view; each reveals once and stays.
+ * Scroll reveal for the landing page. Everything is visible by default (no JavaScript or before
+ * hydration). Once hydrated this adds `.be-reveal-ready`, which hides `[data-reveal]` blocks until
+ * they scroll into view; each reveals once and stays. With reduced motion the reveal is a plain fade.
  * No scroll hijacking: the page scrolls natively and nothing waits on an animation.
  */
 export function RevealRoot({ children, className }: { children: React.ReactNode; className?: string }) {
   const root = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = root.current;
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!el) return;
+    // Reduced motion still gets the reveal, as an opacity fade with no movement (CSS: .be-reduced)
+    el.classList.toggle("be-reduced", window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     const targets = [...el.querySelectorAll<HTMLElement>("[data-reveal]")];
     // Blocks already on screen at load are shown at once, so nothing visible flickers
     const vh = window.innerHeight;

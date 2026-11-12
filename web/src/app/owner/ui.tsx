@@ -66,7 +66,7 @@ export function RoomsTable({ rooms, showProperty }: { rooms: (RoomRow & { proper
               </td>
               <td className="py-3 pl-4 text-right text-ink-2">{r.occupied}</td>
               <td className="py-3 pr-5 pl-4 text-right sm:pr-0">
-                <FreeBeds free={r.free} capacity={r.capacity} />
+                <FreeBeds free={r.free} capacity={r.total} />
               </td>
             </tr>
           ))}

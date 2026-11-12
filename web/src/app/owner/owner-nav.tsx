@@ -10,12 +10,12 @@ const BUILT = [
   { href: "/owner/dashboard", label: "Dashboard", short: "Dashboard", icon: LayoutDashboard },
   { href: "/owner/properties", label: "My Properties", short: "Properties", icon: Building2 },
   { href: "/owner/rooms", label: "Rooms & Availability", short: "Rooms", icon: BedDouble },
+  { href: "/owner/inquiries", label: "Rental inquiries", short: "Inquiries", icon: Inbox },
 ] as const;
 
 // Not built yet. Listed once, under one heading, so owners see what is coming without five "Soon" badges
 // competing with the links they can use (desktop only; phones show just the working tabs).
 const LATER = [
-  { label: "Rental inquiries", icon: Inbox },
   { label: "Tenants", icon: Users },
   { label: "Billing and payments", icon: CircleDollarSign },
   { label: "Reports", icon: ChartColumn },

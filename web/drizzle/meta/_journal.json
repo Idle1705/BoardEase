@@ -15,6 +15,13 @@
       "when": 1794419935451,
       "tag": "0001_discovery",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794463130904,
+      "tag": "0002_marketplace",
+      "breakpoints": true
     }
   ]
 }

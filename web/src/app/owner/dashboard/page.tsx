@@ -34,7 +34,7 @@ async function Dashboard({ ownerId, name }: { ownerId: string; name: string }) {
             {[
               ["Add your property", "The building, with its street and barangay. The exact address stays private.", "now"],
               ["Add its rooms and beds", "Single rooms, shared rooms rented per bed, or whole units, each with its own rent.", "next"],
-              ["Publish a listing", "Choose what renters see. Listings arrive in a later update.", "later"],
+              ["Publish a listing", "Add photos and details, send it for review, then publish it to the finder.", "later"],
             ].map(([head, body, when], i) => (
               <li key={head} className="grid grid-cols-[2.25rem_1fr] gap-x-4 border-t border-limestone py-5 first:border-t-0 first:pt-0">
                 <span

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Bath, BedDouble, CalendarClock, Info, MapPin, Ruler, Sofa, Users, Zap } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { formatPeso } from "@/lib/format";
@@ -93,6 +94,11 @@ export function ListingDetailsDialog({
           </p>
 
           <div className="sticky bottom-0 -mx-5 -mb-5 flex justify-end gap-2 border-t border-hairline bg-white/95 px-5 py-3 backdrop-blur sm:-mx-6 sm:-mb-6 sm:px-6">
+            {!listing.demo && listing.href && (
+              <Link href={listing.href} className="inline-flex h-11 items-center rounded-md px-4 text-body font-medium text-ink ring-1 ring-black/12 hover:bg-surface">
+                Full page
+              </Link>
+            )}
             <button
               type="button"
               onClick={onContact}
@@ -126,9 +132,14 @@ export function ContactDialog({
         <DialogDescription className="text-body text-ink-2">
           {listing.demo
             ? "Demo listings show how the search works, so there is nobody to message. Inquiries and viewing requests open when owners publish real rooms, and you will need a free renter account to send one."
-            : "Sign in to send the owner a message or ask for a viewing."}
+            : "Ask a question or request a viewing on the listing page. Your message goes to the owner's BoardEase inbox; you need a free account to send it."}
         </DialogDescription>
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {!listing.demo && listing.href && (
+            <Link href={`${listing.href}#inquire`} className="inline-flex h-11 items-center rounded-md bg-clay px-5 text-body font-semibold text-white hover:bg-clay-hover">
+              Open the listing
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => onOpenChange(false)}

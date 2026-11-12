@@ -32,11 +32,45 @@ const COLUMNS = [
     links: [
       ["About", "/about"],
       ["Photo credits", "/credits"],
+      ["Privacy", "/privacy"],
     ],
   },
 ] as const;
 
-export function SiteFooter() {
+const COMPACT_LINKS = [
+  ["Find a Board", "/find"],
+  ["List Your Property", "/owners"],
+  ["How It Works", "/how-it-works"],
+  ["About", "/about"],
+  ["Log In", "/sign-in"],
+  ["Photo credits", "/credits"],
+  ["Privacy", "/privacy"],
+] as const;
+
+/** compact: one row for the landing page. Same disclosure line as the full footer. */
+export function SiteFooter({ compact = false }: { compact?: boolean }) {
+  if (compact)
+    return (
+      <footer data-bar="paper" className="bg-[var(--be-paper)]">
+        <div className="mx-auto flex max-w-[1320px] flex-col gap-6 px-5 pt-10 pb-6 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-10">
+          <Logo />
+          <nav aria-label="Footer">
+            <ul className="flex flex-wrap gap-x-6 gap-y-1">
+              {COMPACT_LINKS.map(([label, href]) => (
+                <li key={href}>
+                  <Link href={href} className="inline-flex min-h-10 items-center text-body text-ink-2 transition-colors duration-150 hover:text-clay">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+        <p className="mx-auto max-w-[1320px] border-t border-limestone px-5 py-5 text-footnote text-subtle sm:px-8 lg:px-10">
+          BoardEase is in a limited pilot in Davao City. Listings are posted by their owners and reviewed before they appear. Editorial photos: Unsplash.
+        </p>
+      </footer>
+    );
   return (
     <footer className="border-t border-limestone bg-porcelain">
       <div className="mx-auto grid max-w-[1240px] gap-12 px-5 py-14 sm:px-8 lg:grid-cols-12 lg:px-10">
@@ -67,7 +101,7 @@ export function SiteFooter() {
         </nav>
       </div>
       <div className="mx-auto flex max-w-[1240px] flex-col gap-2 border-t border-limestone px-5 py-6 text-footnote text-subtle sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
-        <p>BoardEase is in development. Listings shown today are demonstrations, not rooms for rent.</p>
+        <p>BoardEase is in a limited pilot in Davao City. Listings are posted by their owners and reviewed before they appear.</p>
         <p>Photos on this page: Unsplash, see Photo credits.</p>
       </div>
     </footer>

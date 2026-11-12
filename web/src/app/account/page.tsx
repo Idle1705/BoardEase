@@ -63,6 +63,9 @@ async function AccountDetails() {
               <Link href="/find" className="inline-flex h-11 items-center gap-2 rounded-md bg-clay px-5 text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]">
                 Browse rooms <ArrowRight className="size-4" strokeWidth={2.2} />
               </Link>
+              <Link href="/inquiries" className="inline-flex h-11 items-center rounded-md px-4 text-body font-medium text-ink ring-1 ring-ink/15 transition-[background-color,scale] duration-150 hover:bg-surface active:scale-[0.97]">
+                Your inquiries
+              </Link>
               <Link href="/saved" className="inline-flex h-11 items-center rounded-md px-4 text-body font-medium text-ink ring-1 ring-ink/15 transition-[background-color,scale] duration-150 hover:bg-surface active:scale-[0.97]">
                 Saved rooms
               </Link>

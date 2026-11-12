@@ -34,8 +34,8 @@ const [p] = await sql`
   values (${OWNER}, '[TEST] Fixture boarding house', 'MacArthur Highway', 'Matina', 7.0662, 125.5961) returning id`;
 const [r] = await sql`insert into rooms (property_id, owner_id, label, kind, capacity, base_rent_cents) values (${p.id}, ${OWNER}, 'R1', 'shared', 3, 270000) returning id`;
 const [l] = await sql`
-  insert into listings (room_id, owner_id, title, description, type, monthly_price_cents, bathroom, furnished, rental_term, status, moderation, published_at)
-  values (${r.id}, ${OWNER}, '[TEST] Bedspace in a room for three', 'Fixture listing for the prototype.', 'bedspace', 270000, 'shared', true, 'monthly', 'published', 'approved', now()) returning id`;
+  insert into listings (room_id, owner_id, title, description, type, monthly_price_cents, bathroom, furnished, rental_term, status, moderation, published_at, availability_confirmed_at)
+  values (${r.id}, ${OWNER}, '[TEST] Bedspace in a room for three', 'Fixture listing for the prototype.', 'bedspace', 270000, 'shared', true, 'monthly', 'published', 'approved', now(), now()) returning id`;
 await sql`insert into availability_checks (listing_id, result, free_beds, method) values (${l.id}, 'available', 1, 'tenancy_records')`;
 
 // Advertiser-submitted references at two real directory buildings (looked up by name), one current, one stale

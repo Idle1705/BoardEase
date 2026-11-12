@@ -229,3 +229,58 @@ Tested in headless Edge at 1440×900 and 390×844 with motion on and off: progre
 ## Visual critique (2026-11-12)
 
 Scores, measured gates, ranked fixes and before/after notes: `docs/web/CRITIQUE-2026-11-12.md`. Fixed: account page next step and title, honest log-in copy, visible dialog close, owner getting-started checklist, owner nav grouping and phone tab labels, properties card height.
+
+## Architectural editorial landing (2026-11-12, replaces "Landing scroll story")
+
+References: landing.love architecture category, mainly Studio X, Radaville and Son Daven (studied from full-page screenshots; recordings would not play in the session), plus the FORMA screenshot. Composition only: brand colours and Familjen/Hanken stay; no serif. Patterns: `~/.claude/design-knowledge/architectural-editorial.md`.
+
+Order: hero, (01) statement + photo pair, (02) renters showcase, (03) owners, (04) today and next, dark closing CTA.
+
+- **Landing photos are straight-edged** (no radius, no shadow), each with a two-part caption: what it shows, and "Editorial photo, not a listing". Rounded corners stay for UI (buttons, finder, owner portal).
+- Hero: 5/7 split, left-aligned 48-88px headline set low, one dominant photo (open-air corridor) that opens upward once on load (CSS `be-unveil`, 1.1s, never blocks).
+- Statement: one indented lead sentence (Studio X), then an asymmetric pair: tall room photo left, small room photo bottom-aligned right, room kinds between.
+- Showcase: three real `/find` screenshots (demo listings, `public/editorial/interface/`); numbered hairline tabs (arrow keys work) swap them with a left-to-right clip wipe (680ms). Phones crop each shot to its focus point.
+- Owners: building photo with the rooms/beds table overlapping its corner (example data, labelled).
+- Closing: Deep Ink, 44-96px headline, facade photo.
+- Motion budget: hero unveil (focal), scroll mask on photos (clip-path from 16% bottom + 1.12 zoom, scrubbed), text rise once, 1.03 photo hover on fine pointers, showcase wipe. Reduced motion: all final state.
+- Rejected: splash/"Enter" gate, pinned horizontal gallery, big parallax, bottom pill nav, glitch type, auto-advancing showcase.
+- Removed from the landing: the drawn-map scroll story (`story-section.tsx`, superseded by real screenshots), "Two ways" cards, "How it works" (still on `/how-it-works`).
+- **Reduced motion = fades, not frozen (2026-11-12).** With reduced motion on, the landing keeps its reveals as opacity fades: hero (700ms), text blocks on scroll, photos once on arrival (GSAP, 0.8s), showcase crossfade (450ms). No translate, mask, zoom or wipe. CSS: `.be-reduced` overrides in `globals.css`. Reason: the owner's PC has Windows Animation effects off, and the fully static page felt dead.
+
+## Minimal editorial landing (2026-11-12, replaces "Architectural editorial landing")
+
+Owner's brief: far less text, photography and layout tell the story (FORMA + landing.love architecture). Words on the landing (excluding footer) went from 578 to 135, page height at 1440 from 5,871 to 3,967 px.
+
+Four parts, nothing else:
+1. **Hero**: 50/50 split. Headline + one line + two buttons on the page grid's left edge; one corridor photo running to the right edge of the screen (opens upward once on load, sinks ~7% as the hero leaves).
+2. **Two ways to begin**: two tall 4:5 photo panels, the second set lower (editorial spread). Each whole panel is a link: "Find a space." to `/find`, "List your property." to `/owners`. Hover: photo push-in, underline, arrow turns clay.
+3. **Closer to what matters.**: the real-screenshot finder showcase, one short line per step, "Explore rooms".
+4. **Closing**: Deep Ink, "Find a room. Or fill one.", Find a Board / List Your Property, facade photo. Then a one-row compact footer (`SiteFooter compact`) that keeps the demo disclosure and Photo credits.
+
+Kept on purpose: every "Editorial photo, not a listing" and "Demo listings, not for rent" label, alt text, the screen-reader heading for section 2.
+Removed: statement paragraph, room-kind list, owners table card, "Why BoardEase" lists, section labels, the hero location label.
+Motion: mask reveal on every photo frame (clip-path from 18% bottom), photos drift -4% to +4% inside their frames across the pass, screenshots settle from 1.08, text rises once. Reduced motion: fades only.
+
+## Top bar and surfaces (2026-11-12)
+
+Owner's brief: the bar and backgrounds felt flat and generic; make them refined, not decorated. Reference: the owner's "A — Apple Minimal" card (72px, minimal indicator, fine borders, avatar), pushed slightly more architectural.
+
+Top bar (`components/site-header.tsx`, shared by every page):
+- 72px, three columns (logo / centred nav / actions), 40px side padding on desktop. Logo mark 32px, wordmark 21px.
+- Active page: soft Limestone pill + 6px Fired Clay dot + semibold label. The pill glides to the new item on navigation (Motion `layoutId`, spring 0.32s; instant under reduced motion). Hover on other items: a fainter inset wash, never mistaken for active.
+- Right: Saved (with clay count), a hairline divider, one avatar button. Signed out it is an outlined person icon whose menu holds Log in, Sign up, Create an owner account; signed in it shows the initial and holds Your account, Owner portal, Log out. Phones keep the sheet menu with Log in / Sign up buttons.
+- Surface: Home uses a paper bar with no border at the top that gains a Limestone hairline and soft shadow once the page scrolls; other marketing pages Porcelain + hairline; finder and owner portal white + hairline. No blur (content never scrolls under the bar).
+- Trade-off accepted: "Sign up" is no longer a visible button on desktop; it lives in the account menu, as requested.
+
+Surfaces (derived tints, no new hues: `--be-paper` #FBF9F5, `--be-stone-tint` #F0EBE3):
+- Hero `be-canvas`: paper fading to Porcelain, a 5% warm light behind the headline, six 4.5% ink column rules from the headline edge to the photo, fading downward.
+- Two ways `be-stone`; Closer to what matters: white (demo stands out); closing `be-ink-warm`: Deep Ink with a low 20% clay glow from the lower left; compact footer on paper.
+- Rejected: glass blur, grain everywhere, mesh/blob gradients, underline-only active state.
+- **Transparent bar on Home (2026-11-12, owner's request).** On `/` the bar floats over the hero (`absolute`, hero has `pt-18`): no background and no border at the top, so the paper canvas runs behind it. Once the page scrolls it becomes translucent paper (`rgb(251 249 245 / 0.8)`, 12px blur, saturate 1.5) with a 70% Limestone hairline and a soft shadow, so the nav stays readable over photos passing underneath. The hero's column rules are masked out of the top 72px so nothing crosses the nav labels. Other pages keep their solid bar, since their content never runs under it.
+- **Clear bar, clay text (2026-11-12, owner's request; replaces the frosted bar and the pill).** On Home and on the desktop finder the bar has no background, border or blur: the logo, links and account button float on the page. On Home it scrolls away 1:1 with the hero (so dark text never lands on photos or the Ink section); on the finder it floats over the map, whose search and panels start at 92px. The finder on phones keeps a solid white bar because its list scrolls under the bar. The active page is Fired Clay text (#B44630, same clay as the buttons), semibold; no pill, no dot, no underline. Other pages keep the solid Porcelain/white bar.
+- **Three links (2026-11-12, owner's call).** The bar keeps Home, Looking for a Board? and List Your Property. How It Works and About left the bar (desktop and phone menu) because the landing covers both; the pages still exist and are linked from both footers.
+- **Following, invisible bar (2026-11-12, owner's request; replaces "scrolls away").** On Home and List Your Property the bar stays at the top while you scroll, with no border or shadow, and always takes the colour of the section about to slide under it (`data-bar="paper|stone|white|ink"` on each section, `useBarSurface` in `site-header.tsx`). It reads as no bar, but content disappears cleanly beneath it. A truly see-through following bar was tried first and rejected: headings and list text slid under the links and collided with them (screenshots, desktop and phone). Over Ink the links turn light and the logo tile inverts; the active link stays clay.
+
+## List Your Property page (2026-11-12)
+
+Rebuilt in the landing's direction (`app/owners/page.tsx`): split hero ("Fill your rooms. Keep track of every bed.", Create an owner account / Go to the owner portal, edge-to-edge apartment photo); stone band "Built around beds, not just rooms." with three numbered steps and a full-size Rooms table (beds, free now, rent per room; example data, labelled); white "What works today." with a one-line privacy promise and two short checklists (working today / in development, kept for honesty); Deep Ink closing "Your rooms, ready for renters."; compact footer. Text cut from ~200 to ~110 words. `FinalCta` now takes a title, two links and a photo so pages can reuse it.

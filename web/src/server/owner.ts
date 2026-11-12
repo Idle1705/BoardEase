@@ -1,5 +1,6 @@
 import "server-only";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { roomSpaces } from "@/lib/marketplace";
 import { getDb, schema } from "./db";
 
 const { properties, rooms, tenancies, inquiries } = schema;
@@ -7,8 +8,9 @@ const { properties, rooms, tenancies, inquiries } = schema;
 /*
  * Owner portal data. Every query is scoped by ownerId taken from the server session
  * (requireRole in the caller), never from anything the browser sends.
- * Availability is per bed: free = capacity - active tenancies in that room. One full room
- * never makes the whole property look full.
+ * Availability (lib/marketplace roomSpaces): a shared room is rented per bed, so free = beds - taken;
+ * a single room or whole unit is one space, free only when nobody holds it. "Taken" = active tenancies
+ * plus beds the owner marked taken. One full room never makes the whole property look full.
  */
 
 export type RoomRow = {
@@ -19,6 +21,9 @@ export type RoomRow = {
   capacity: number;
   occupied: number;
   free: number;
+  /** Spaces this room offers: beds for a shared room, 1 for a single room or whole unit. */
+  total: number;
+  takenManual: number;
   rentCents: number;
 };
 
@@ -51,6 +56,7 @@ export async function getOwnerInventory(ownerId: string): Promise<PropertyRow[]>
       kind: rooms.kind,
       capacity: rooms.capacity,
       rentCents: rooms.baseRentCents,
+      takenManual: rooms.takenManual,
     })
     .from(rooms)
     .where(and(eq(rooms.ownerId, ownerId), inArray(rooms.propertyId, props.map((p) => p.id))))
@@ -69,12 +75,13 @@ export async function getOwnerInventory(ownerId: string): Promise<PropertyRow[]>
     const rs: RoomRow[] = roomRows
       .filter((r) => r.propertyId === p.id)
       .map((r) => {
-        const occupied = Math.min(occupiedBy.get(r.id) ?? 0, r.capacity);
-        return { ...r, occupied, free: r.capacity - occupied };
+        const occupied = Math.min((occupiedBy.get(r.id) ?? 0) + r.takenManual, r.capacity);
+        const sp = roomSpaces(r.kind, r.capacity, occupied);
+        return { ...r, occupied, free: sp.free, total: sp.total };
       });
-    const capacity = rs.reduce((a, r) => a + r.capacity, 0);
-    const occupied = rs.reduce((a, r) => a + r.occupied, 0);
-    return { ...p, rooms: rs, capacity, occupied, free: capacity - occupied };
+    const capacity = rs.reduce((a, r) => a + r.total, 0);
+    const free = rs.reduce((a, r) => a + r.free, 0);
+    return { ...p, rooms: rs, capacity, occupied: capacity - free, free };
   });
 }
 

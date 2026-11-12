@@ -50,4 +50,8 @@ export type PublicListing = {
   amenities: string[];
   description: string;
   photos: ListingPhoto[];
+  /** Real listings: free spaces right now (beds, rooms or units), price is the lowest available ("from"), and the page to open. */
+  freeSpaces?: number;
+  priceFrom?: boolean;
+  href?: string;
 };
