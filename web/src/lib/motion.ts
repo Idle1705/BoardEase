@@ -39,8 +39,21 @@ export function setMorphSource(id: string, img: HTMLImageElement | null) {
   };
 }
 
+/** The flight in progress, if any. A new selection completes it at once, so rapid clicks never stack ghosts. */
+let active: { tl: gsap.core.Timeline; ghost: HTMLImageElement; target: HTMLElement } | null = null;
+
+function finishActive() {
+  if (!active) return;
+  const { tl, ghost, target } = active;
+  active = null;
+  tl.kill();
+  ghost.remove();
+  gsap.set(target, { opacity: 1 });
+}
+
 /** Called by the featured listing after it renders `id`. Returns true when it ran the morph. */
 export function runMorphInto(id: string, target: HTMLElement | null): boolean {
+  finishActive();
   const src = pending;
   pending = null;
   if (!src || !target || src.id !== id || performance.now() - src.at > 600) return false;
@@ -66,9 +79,10 @@ export function runMorphInto(id: string, target: HTMLElement | null): boolean {
   document.body.appendChild(ghost);
 
   gsap.set(target, { opacity: 0 });
-  gsap
+  const tl = gsap
     .timeline({
       onComplete: () => {
+        if (active?.ghost === ghost) active = null;
         gsap.set(target, { opacity: 1 });
         gsap.to(ghost, { opacity: 0, duration: 0.18, onComplete: () => ghost.remove() });
       },
@@ -78,5 +92,6 @@ export function runMorphInto(id: string, target: HTMLElement | null): boolean {
     .to(ghost, { top: to.top, height: to.height, duration: 0.56, ease: "power4.out" }, 0)
     .to(ghost, { borderRadius: 20, duration: 0.56, ease: EASE_MOVE }, 0)
     .to(ghost, { boxShadow: "0 0 0 0 rgb(0 0 0 / 0)", duration: 0.2 }, 0.36);
+  active = { tl, ghost, target };
   return true;
 }

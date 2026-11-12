@@ -6,7 +6,8 @@ import { getDb, schema } from "@/server/db";
 import { requireRole } from "@/server/profiles";
 import { locateStreet, ownsProperty } from "@/server/owner";
 
-export type FormState = { ok?: string; error?: string; fields?: Record<string, string> };
+/** `newId` is set only after the database confirmed the insert; the form highlights that row. */
+export type FormState = { ok?: string; error?: string; newId?: string; fields?: Record<string, string> };
 
 const text = (max: number, label: string) =>
   z.string().trim().min(1, `Enter the ${label}.`).max(max, `Keep the ${label} under ${max} characters.`);
@@ -38,9 +39,12 @@ export async function createPropertyAction(_: FormState, form: FormData): Promis
   }
   if (!point) return { error: "We couldn't find that street. Check the spelling, or try a nearby main road.", fields };
 
-  await getDb().insert(schema.properties).values({ ownerId: owner.id, name, street, district, city, ...point });
+  const [created] = await getDb()
+    .insert(schema.properties)
+    .values({ ownerId: owner.id, name, street, district, city, ...point })
+    .returning({ id: schema.properties.id });
   revalidatePath("/owner", "layout");
-  return { ok: `${name} added. Now add its rooms.` };
+  return { ok: `${name} added. Now add its rooms.`, newId: created?.id };
 }
 
 const roomInput = z
@@ -72,8 +76,9 @@ export async function createRoomAction(_: FormState, form: FormData): Promise<Fo
   // Authorization: the property must belong to this owner
   if (!(await ownsProperty(owner.id, r.propertyId))) return { error: "You don't have access to this property.", fields };
 
+  let roomId: string | undefined;
   try {
-    await getDb()
+    const [created] = await getDb()
       .insert(schema.rooms)
       .values({
         propertyId: r.propertyId,
@@ -82,7 +87,9 @@ export async function createRoomAction(_: FormState, form: FormData): Promise<Fo
         kind: r.kind,
         capacity: r.capacity,
         baseRentCents: Math.round(r.rent * 100),
-      });
+      })
+      .returning({ id: schema.rooms.id });
+    roomId = created?.id;
   } catch (e) {
     // Drizzle wraps the Postgres error; the code and constraint name sit on `cause`
     const pg = ((e as { cause?: { code?: string; constraint?: string } }).cause ?? e) as { code?: string; constraint?: string; message?: string };
@@ -91,5 +98,5 @@ export async function createRoomAction(_: FormState, form: FormData): Promise<Fo
     return { error: "Couldn't save the room. Try again.", fields };
   }
   revalidatePath("/owner", "layout");
-  return { ok: `${r.label} added.` };
+  return { ok: `${r.label} added.`, newId: roomId };
 }

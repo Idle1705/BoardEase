@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { CircleCheck } from "lucide-react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { CircleCheck, Loader2 } from "lucide-react";
+import { motion, MotionConfig } from "motion/react";
 import { createPropertyAction, createRoomAction, type FormState } from "./actions";
 import { cn } from "@/lib/utils";
 
@@ -35,21 +36,64 @@ function Status({ state }: { state: FormState }) {
   return null;
 }
 
+/**
+ * Both labels sit in the same grid cell, so the button keeps its width while saving.
+ * Saving a property looks the street up on the map first, which can take a few seconds.
+ */
 function Submit({ pending, children }: { pending: boolean; children: React.ReactNode }) {
   return (
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-11 items-center justify-center rounded-md bg-clay px-5 text-body font-semibold text-white transition-[background-color,scale,opacity] duration-150 hover:bg-clay-hover active:scale-[0.97] disabled:opacity-60"
+      aria-busy={pending || undefined}
+      className="inline-grid h-11 place-items-center rounded-md bg-clay px-5 text-body font-semibold text-white transition-[background-color,scale,opacity] duration-150 hover:bg-clay-hover active:scale-[0.97] disabled:opacity-75"
     >
-      {pending ? "Saving…" : children}
+      <span className={cn("col-start-1 row-start-1 transition-opacity duration-150", pending && "opacity-0")}>{children}</span>
+      <span aria-hidden={!pending} className={cn("col-start-1 row-start-1 inline-flex items-center gap-2 transition-opacity duration-150", !pending && "opacity-0")}>
+        <Loader2 className="size-4 animate-spin motion-reduce:animate-none" /> Saving
+      </span>
     </button>
   );
+}
+
+/**
+ * After the server confirms a save, bring the new row into view and give it a short Fired Clay wash,
+ * so the owner sees where it went. Runs only on a confirmed id; a failed save never highlights anything.
+ */
+function useHighlightNewRow(newId: string | undefined) {
+  useEffect(() => {
+    if (!newId) return;
+    let frames = 0;
+    let raf = 0;
+    const find = () => {
+      const row = document.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(newId)}"]`);
+      if (row) {
+        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        row.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+        row.animate(
+          reduce
+            ? [{ backgroundColor: "rgb(180 70 48 / 0.14)" }, { backgroundColor: "rgb(180 70 48 / 0)" }]
+            : [
+                { backgroundColor: "rgb(180 70 48 / 0.16)", opacity: 0, translate: "0 6px" },
+                { backgroundColor: "rgb(180 70 48 / 0.14)", opacity: 1, translate: "0 0", offset: 0.25 },
+                { backgroundColor: "rgb(180 70 48 / 0)", opacity: 1, translate: "0 0" },
+              ],
+          { duration: reduce ? 1200 : 1400, easing: "cubic-bezier(0.23, 1, 0.32, 1)" },
+        );
+        return;
+      }
+      // The list re-renders from the server right after the action; wait for it (about 2 s at most)
+      if (++frames < 120) raf = requestAnimationFrame(find);
+    };
+    raf = requestAnimationFrame(find);
+    return () => cancelAnimationFrame(raf);
+  }, [newId]);
 }
 
 export function PropertyForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(createPropertyAction, {});
   const form = useRef<HTMLFormElement>(null);
+  useHighlightNewRow(state.newId);
   useEffect(() => {
     if (state.ok) form.current?.reset();
   }, [state]);
@@ -81,6 +125,7 @@ export function PropertyForm() {
 export function RoomForm({ propertyId }: { propertyId: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(createRoomAction, {});
   const form = useRef<HTMLFormElement>(null);
+  useHighlightNewRow(state.newId);
   useEffect(() => {
     if (state.ok) form.current?.reset();
   }, [state]);
@@ -98,6 +143,7 @@ export function RoomForm({ propertyId }: { propertyId: string }) {
 }
 
 function RoomFields({ fields: f }: { fields: Record<string, string> }) {
+  const highlightId = useId();
   const [kind, setKind] = useState<"single" | "shared" | "unit">(
     f.kind === "shared" || f.kind === "unit" ? f.kind : "single",
   );
@@ -111,9 +157,11 @@ function RoomFields({ fields: f }: { fields: Record<string, string> }) {
           <input name="rent" required inputMode="decimal" defaultValue={f.rent} className={cn(input, "tabular-nums")} autoComplete="off" placeholder="3500" />
         </Field>
       </div>
+      <MotionConfig reducedMotion="user">
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1.5 text-footnote font-medium text-ink">How is it rented?</legend>
-        <div className="flex flex-col gap-2">
+        {/* isolate: the sliding highlight (-z-10) stays above this group and below every card's text */}
+        <div className="isolate flex flex-col gap-2">
           {(
             [
               ["single", "Single room", "1 bed, one tenant"],
@@ -124,10 +172,19 @@ function RoomFields({ fields: f }: { fields: Record<string, string> }) {
             <label
               key={value}
               className={cn(
-                "flex cursor-pointer items-center gap-3 rounded-lg px-3.5 py-3 ring-1 transition-[background-color,box-shadow] duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-clay",
-                kind === value ? "bg-clay-soft ring-clay/50" : "bg-white ring-ink/15 hover:bg-surface",
+                "relative flex cursor-pointer items-center gap-3 rounded-lg px-3.5 py-3 ring-1 transition-[background-color,box-shadow] duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-clay",
+                kind === value ? "ring-transparent" : "ring-ink/15 hover:bg-ink/[0.03]",
               )}
             >
+              {/* One highlight slides to the chosen option (Motion layout animation) */}
+              {kind === value && (
+                <motion.span
+                  layoutId={highlightId}
+                  aria-hidden
+                  className="absolute inset-0 -z-10 rounded-lg bg-clay-soft ring-1 ring-clay/50"
+                  transition={{ type: "spring", duration: 0.32, bounce: 0 }}
+                />
+              )}
               <input type="radio" name="kind" value={value} checked={kind === value} onChange={() => setKind(value)} className="size-4 shrink-0 accent-clay" />
               <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3">
                 <span className="text-body font-medium text-ink">{label}</span>
@@ -137,6 +194,7 @@ function RoomFields({ fields: f }: { fields: Record<string, string> }) {
           ))}
         </div>
       </fieldset>
+      </MotionConfig>
       <Field label="Beds (rentable spaces)">
         {kind === "single" ? (
           <input name="capacity" value="1" readOnly className={cn(input, "bg-surface")} />

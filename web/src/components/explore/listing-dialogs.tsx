@@ -31,10 +31,11 @@ export function ListingDetailsDialog({
   ];
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[92dvh] flex-col gap-0 overflow-y-auto rounded-xl p-0 sm:max-w-2xl [&>*]:shrink-0" showCloseButton>
+      {/* The close button sits on the photo: give it the same white disc as the save button so it stays visible on light photos */}
+      <DialogContent className="flex max-h-[92dvh] flex-col gap-0 overflow-y-auto rounded-xl p-0 sm:max-w-2xl [&>*]:shrink-0 [&>[data-slot=dialog-close]]:top-3 [&>[data-slot=dialog-close]]:right-3 [&>[data-slot=dialog-close]]:z-10 [&>[data-slot=dialog-close]]:size-10 [&>[data-slot=dialog-close]]:rounded-full [&>[data-slot=dialog-close]]:bg-white/95 [&>[data-slot=dialog-close]]:text-ink [&>[data-slot=dialog-close]]:shadow-md [&>[data-slot=dialog-close]]:hover:bg-white" showCloseButton>
         <Gallery photos={listing.photos} sizes="(min-width: 640px) 672px, 100vw" rounded="rounded-none" className="aspect-[16/10] w-full" expandTitle={listing.title}>
           <div className="absolute top-3 left-3">{listing.demo && <DemoBadge />}</div>
-          <FavoriteButton id={listing.id} title={listing.title} className="absolute top-3 right-14" />
+          <FavoriteButton id={listing.id} title={listing.title} className="absolute top-3 right-[60px]" />
         </Gallery>
         <div className="flex flex-col gap-5 p-5 sm:p-6">
           {listing.demo && (

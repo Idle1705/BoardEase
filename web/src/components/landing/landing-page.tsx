@@ -7,7 +7,9 @@ import { PROPERTY_TYPE_LABEL } from "@/lib/listing-types";
 import { cn } from "@/lib/utils";
 import { SiteFooter } from "@/components/site-footer";
 import { RevealRoot } from "./reveal";
-import { NearbyPreview } from "./nearby-preview";
+import { StorySection } from "./story-section";
+import { ScrollScenes } from "./scroll-scenes";
+import { JourneyProgress } from "./journey-progress";
 import heroRoom from "../../../public/editorial/hero-room.jpg";
 import heroBuilding from "../../../public/editorial/hero-building.jpg";
 import renterRoom from "../../../public/editorial/renter-room.jpg";
@@ -30,11 +32,12 @@ export function LandingPage() {
         <WhatIs />
       </div>
       <TwoWays />
-      <NearbySection />
+      <StorySection />
       <HowItWorks />
       <WhyBoardEase />
       <FinalCta />
       <SiteFooter />
+      <ScrollScenes />
     </RevealRoot>
   );
 }
@@ -90,7 +93,7 @@ function HeroPhotos() {
     <div className="relative lg:col-span-6 lg:col-start-7">
       <div className="relative ml-auto aspect-[4/5] w-full max-w-[520px] sm:w-[78%] lg:w-[82%]">
         {/* Main anchor: a lived-in single room in natural light */}
-        <div className="be-settle absolute inset-0 overflow-hidden rounded-[28px] shadow-xl" style={{ ["--d" as string]: "80ms" }}>
+        <div data-scene="hero-main" className="be-settle absolute inset-0 overflow-hidden rounded-[28px] shadow-xl" style={{ ["--d" as string]: "80ms" }}>
           <Image
             src={heroRoom}
             alt="A small bedroom with a wooden wall, a desk under the window and a white chair"
@@ -113,6 +116,7 @@ function HeroPhotos() {
 
         {/* Illustrative price card, clearly labelled */}
         <div
+          data-scene="hero-card"
           className="be-enter absolute right-4 -bottom-7 w-[220px] rounded-2xl bg-white p-4 shadow-lg ring-1 ring-ink/5 sm:-right-6"
           style={{ ["--d" as string]: "500ms", ["--rise" as string]: "10px" }}
         >
@@ -127,6 +131,7 @@ function HeroPhotos() {
 
       {/* Supporting image: the building, set against the room for scale */}
       <div
+        data-scene="hero-back"
         className="be-settle absolute -bottom-10 left-0 hidden aspect-[3/4] w-[34%] max-w-[230px] overflow-hidden rounded-[22px] shadow-lg ring-8 ring-porcelain sm:block"
         style={{ ["--d" as string]: "200ms" }}
       >
@@ -249,7 +254,7 @@ function TwoWays() {
         <div className="mt-12 grid gap-6 lg:grid-cols-12">
           {/* Renters: light, photo-led */}
           <article data-reveal className="flex flex-col overflow-hidden rounded-[28px] bg-porcelain ring-1 ring-limestone lg:col-span-7">
-            <div className="relative aspect-[16/9] lg:aspect-[16/10]">
+            <div data-scene="wipe" data-radius="0" className="relative aspect-[16/9] overflow-hidden lg:aspect-[16/10]">
               <Image src={renterRoom} alt="A single bed by a window with an orange cushion" fill placeholder="blur" sizes="(min-width: 1024px) 700px, 100vw" className="object-cover" />
             </div>
             <div className="flex flex-1 flex-col p-7 sm:p-9">
@@ -289,7 +294,7 @@ function TwoWays() {
                 </li>
               ))}
             </ul>
-            <div className="relative mt-7 aspect-[16/9] overflow-hidden rounded-2xl">
+            <div data-scene="wipe" data-radius="16" className="relative mt-7 aspect-[16/9] overflow-hidden rounded-2xl">
               <Image src={ownerStreet} alt="A mid-rise apartment block with trees along a paved walkway" fill placeholder="blur" sizes="(min-width: 1024px) 460px, 100vw" className="object-cover" />
             </div>
             <div className="mt-8 lg:mt-auto lg:pt-8">
@@ -298,36 +303,6 @@ function TwoWays() {
               </Link>
             </div>
           </article>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------------- Explore nearby */
-
-function NearbySection() {
-  return (
-    <section aria-labelledby="nearby-title" className="bg-white pb-24 sm:pb-28">
-      <div className={WRAP}>
-        <div className="grid items-end gap-6 border-t border-limestone pt-20 lg:grid-cols-12">
-          <div className="lg:col-span-6" data-reveal>
-            <h2 id="nearby-title" className="font-display text-section font-semibold text-balance text-ink">
-              See what is near, and what it costs.
-            </h2>
-          </div>
-          <p className="text-prose text-ink-2 lg:col-span-5 lg:col-start-8" data-reveal>
-            Prices sit on the map, so you can compare rent and distance at a glance. Pick one to see the room.
-          </p>
-        </div>
-        <div className="mt-12" data-reveal>
-          <NearbyPreview />
-        </div>
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4" data-reveal>
-          <p className="text-footnote text-subtle">Illustrative preview with demo listings. These rooms are not for rent.</p>
-          <Link href="/find" className="inline-flex h-12 items-center gap-2 rounded-md bg-ink px-5 text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-ink-2 active:scale-[0.97]">
-            Open the finder <ArrowRight className="size-4" strokeWidth={2.2} />
-          </Link>
         </div>
       </div>
     </section>
@@ -371,15 +346,17 @@ function Journey({ title, steps, level: H = "h3" }: { title: string; steps: stri
   return (
     <div>
       <H data-reveal className="text-callout font-semibold text-ink">{title}</H>
+      <JourneyProgress>
       <ol className="mt-6 border-t border-ink/15">
         {steps.map(([head, body], i) => (
           <li
             key={head}
             data-reveal
+            data-step
             style={{ ["--reveal-delay" as string]: `${i * 90}ms` }}
             className="grid grid-cols-[3.5rem_1fr] gap-x-4 border-b border-ink/15 py-7"
           >
-            <span aria-hidden className="font-display text-[40px] leading-none font-semibold tracking-[-0.03em] text-clay tabular-nums">
+            <span aria-hidden data-step-num className="font-display text-[40px] leading-none font-semibold tracking-[-0.03em] text-clay tabular-nums">
               {String(i + 1).padStart(2, "0")}
             </span>
             <div>
@@ -392,6 +369,7 @@ function Journey({ title, steps, level: H = "h3" }: { title: string; steps: stri
           </li>
         ))}
       </ol>
+      </JourneyProgress>
     </div>
   );
 }
@@ -456,7 +434,7 @@ export function FinalCta() {
     <section aria-labelledby="cta-title" className="bg-ink text-porcelain">
       <div className={cn(WRAP, "grid items-center gap-12 py-20 sm:py-24 lg:grid-cols-12")}>
         <div className="lg:col-span-6" data-reveal>
-          <span aria-hidden className="block h-1 w-12 rounded-full bg-clay" />
+          <span aria-hidden data-scene="cta-bar" className="block h-1 w-12 origin-left rounded-full bg-clay" />
           <h2 id="cta-title" className="mt-8 font-display text-section font-semibold text-balance">
             Find a room, or fill one.
           </h2>
@@ -472,7 +450,7 @@ export function FinalCta() {
             </Link>
           </div>
         </div>
-        <div className="relative aspect-[4/3] overflow-hidden rounded-[28px] lg:col-span-6" data-reveal>
+        <div data-scene="cta-photo" className="relative aspect-[4/3] overflow-hidden rounded-[28px] lg:col-span-6" data-reveal>
           <Image src={ctaCorridor} alt="An open-air corridor of a residential building, lit by afternoon sun" fill placeholder="blur" sizes="(min-width: 1024px) 560px, 100vw" className="object-cover" />
         </div>
       </div>

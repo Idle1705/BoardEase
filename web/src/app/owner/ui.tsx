@@ -56,7 +56,7 @@ export function RoomsTable({ rooms, showProperty }: { rooms: (RoomRow & { proper
         </thead>
         <tbody className="tabular-nums">
           {rooms.map((r) => (
-            <tr key={r.id} className="border-b border-limestone/70 last:border-0">
+            <tr key={r.id} data-row-id={r.id} className="border-b border-limestone/70 last:border-0">
               {showProperty && <td className="px-5 py-3 text-ink-2 sm:px-0">{r.propertyName}</td>}
               <th scope="row" className={cn("py-3 font-medium text-ink", showProperty ? "pl-4" : "px-5 sm:px-0")}>{r.label}</th>
               <td className="py-3 pl-4 text-ink-2">{KIND[r.kind]}</td>

@@ -8,18 +8,21 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "node scripts/copy-maplibre-worker.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "node --env-file=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
     "@neon/auth": "^0.8.2",
     "@neondatabase/serverless": "^1.2.0",
+    "animejs": "^4.5.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "drizzle-orm": "^0.45.4",
     "gsap": "^3.15.1",
     "lucide-react": "^1.71.0",
     "maplibre-gl": "^6.17.0",
+    "motion": "^14.12.0",
     "next": "16.4.6",
     "next-themes": "^0.4.6",
     "react": "19.3.0",

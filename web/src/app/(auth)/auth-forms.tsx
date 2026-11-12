@@ -4,6 +4,7 @@ import { useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { motion, MotionConfig } from "motion/react";
 import { cn } from "@/lib/utils";
 import { signInAction, signUpAction, type AuthFormState } from "./actions";
 
@@ -29,12 +30,15 @@ export function SignInForm() {
 
 export function SignUpForm({ initialRole = "renter" }: { initialRole?: "renter" | "owner" }) {
   const [state, action, pending] = useActionState<AuthFormState, FormData>(signUpAction, {});
+  const roleHighlight = useId();
   const [role, setRole] = useState(state.fields?.role ? (state.fields.role === "owner" ? "owner" : "renter") : initialRole);
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
+      <MotionConfig reducedMotion="user">
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-footnote font-medium text-ink">I want to</legend>
-        <div className="grid grid-cols-2 gap-2">
+        {/* isolate: the sliding highlight sits above this group and below the card text */}
+        <div className="isolate grid grid-cols-2 gap-2">
           {(
             [
               ["renter", "Find a room", "Search, save and contact owners"],
@@ -44,10 +48,18 @@ export function SignUpForm({ initialRole = "renter" }: { initialRole?: "renter" 
             <label
               key={value}
               className={cn(
-                "flex cursor-pointer flex-col gap-0.5 rounded-lg p-3 ring-1 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-clay",
-                role === value ? "bg-clay-soft ring-2 ring-clay/60" : "ring-ink/15 bg-white hover:bg-surface",
+                "relative flex cursor-pointer flex-col gap-0.5 rounded-lg p-3 ring-1 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-clay",
+                role === value ? "ring-transparent" : "ring-ink/15 hover:bg-ink/[0.03]",
               )}
             >
+              {role === value && (
+                <motion.span
+                  layoutId={roleHighlight}
+                  aria-hidden
+                  className="absolute inset-0 -z-10 rounded-lg bg-clay-soft ring-2 ring-clay/60"
+                  transition={{ type: "spring", duration: 0.32, bounce: 0 }}
+                />
+              )}
               <input
                 type="radio"
                 name="role"
@@ -62,6 +74,7 @@ export function SignUpForm({ initialRole = "renter" }: { initialRole?: "renter" 
           ))}
         </div>
       </fieldset>
+      </MotionConfig>
       <Field label="Full name" name="name" autoComplete="name" defaultValue={state.fields?.name} error={errorFor(state, "name")} />
       <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.fields?.email} error={errorFor(state, "email")} />
       <PasswordField autoComplete="new-password" hint="At least 8 characters." error={errorFor(state, "password")} />

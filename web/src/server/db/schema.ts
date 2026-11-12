@@ -5,6 +5,8 @@
  *  1. Marketplace: properties, rooms, listings, photos, favourites, inquiries, reports.
  *  2. Management (owner-private): tenants, tenancies, utility readings, bills, payments.
  *  3. Accounts: profiles keyed by the Neon Auth user id (Better Auth, schema `neon_auth`).
+ *  4. Discovery (discovery.ts): sources, the building directory, permitted external references,
+ *     availability checks, owner claims and renter requests.
  *
  * Money is integer centavos. Exact addresses and exact coordinates live only on `properties`
  * and are never selected by public queries (see src/server/listings.ts).
@@ -28,6 +30,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { buildings, externalListings, rentalTerm } from "./discovery";
 
 export const userRole = pgEnum("user_role", ["renter", "owner", "admin"]);
 export const propertyType = pgEnum("property_type", ["bedspace", "dormitory", "boarding-house", "private-room", "apartment"]);
@@ -140,6 +143,8 @@ export const listings = pgTable(
     furnished: boolean("furnished").notNull().default(false),
     utilitiesNote: text("utilities_note").notNull().default(""),
     minimumStayMonths: integer("minimum_stay_months").notNull().default(1),
+    rentalTerm: rentalTerm("rental_term").notNull().default("monthly"),
+    bedrooms: integer("bedrooms"),
     amenities: text("amenities").array().notNull().default(sql`'{}'::text[]`),
     status: listingStatus("status").notNull().default("draft"),
     moderation: moderationStatus("moderation").notNull().default("pending"),
@@ -199,6 +204,8 @@ export const inquiries = pgTable(
 export const reports = pgTable("reports", {
   id: uuid("id").primaryKey().defaultRandom(),
   listingId: uuid("listing_id").references(() => listings.id, { onDelete: "set null" }),
+  externalListingId: uuid("external_listing_id").references(() => externalListings.id, { onDelete: "set null" }),
+  buildingId: uuid("building_id").references(() => buildings.id, { onDelete: "set null" }),
   reporterId: text("reporter_id").notNull().references(() => profiles.userId),
   reason: text("reason").notNull(),
   details: text("details"),
@@ -299,3 +306,5 @@ export const payments = pgTable(
   },
   (t) => [index("payments_bill_idx").on(t.billId), check("payments_positive", sql`${t.amountCents} > 0`)],
 );
+
+export * from "./discovery";

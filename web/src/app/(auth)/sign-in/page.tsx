@@ -6,7 +6,7 @@ export const metadata = { title: "Log in" };
 
 export default function SignInPage() {
   return (
-    <AuthShell title="Log in" intro="Welcome back. Your saved rooms and messages are waiting.">
+    <AuthShell title="Log in" intro="Log in to your BoardEase account. Owners manage their properties and rooms from here.">
       <Suspense>
         <SignInForm />
       </Suspense>

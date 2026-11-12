@@ -177,3 +177,55 @@ Full report: `docs/web/REDESIGN-2026-11.md`. Screenshots: `docs/web/screenshots/
 - Motion: hero entrance is CSS only (`.be-enter`, `.be-settle`; 560 to 760ms, steps of about 100ms). Scroll reveal (`RevealRoot`) is visible by default and only hides blocks when motion is allowed; no scroll hijacking.
 - Finder: layout kept (floating panel over a full map, Estates reference). Clay selected pin and card, visible photo count, full-screen photo viewer (keys, swipe, Esc returns focus).
 - Owner portal: Dashboard, My Properties, Rooms & Availability are real and owner-scoped; other modules are listed as "Soon" and not linked.
+
+## Motion Director pass (2026-11-12)
+
+Audit with the `motion-director` skill (`~/.claude/skills/motion-director`, BoardEase spec in its `references/`). Ranked P0 (broken) to P3 (storytelling).
+
+| P | Change | Tool | Files |
+|---|---|---|---|
+| P0 | One photo flight at a time: a new card pick finishes the previous flight, so rapid clicks never stack ghosts or leave the featured photo hidden | GSAP (existing) | `src/lib/motion.ts` |
+| P1 | Save button holds its width and shows a spinner while saving (`aria-busy`) | CSS | `src/app/owner/forms.tsx` |
+| P1 | After the server confirms a new property or room, that row scrolls into view with a short Fired Clay wash. A failed save highlights nothing | Web Animations API | `forms.tsx`, `actions.ts` (returns `newId` after insert), `ui.tsx`, `properties/page.tsx` (`data-row-id`) |
+| P2 | Choice cards: one highlight slides to the chosen option (room kind, sign-up role) | Motion `layoutId`, `MotionConfig reducedMotion="user"` | `forms.tsx`, `(auth)/auth-forms.tsx` |
+| P3 | How it works scroll story: a clay line draws down each journey and step numbers light up when reached. No pinning, nothing hidden | GSAP ScrollTrigger (scroller = `<main>`) | `components/landing/journey-progress.tsx`, `landing-page.tsx`, `globals.css` |
+
+Rejected:
+- **Hero changes:** the CSS entrance already meets the spec.
+- **Animated dashboard or price numbers:** the spec bans them.
+- **Parallax and pinned sections:** they confuse keyboard users.
+- **Autoplay galleries.**
+- **animejs:** it's in the working tree but redundant next to GSAP and Motion.
+
+Reduced motion behaviour:
+- **Journey:** shows all numbers in clay, with no line.
+- **Choice highlights:** jump instead of slide.
+- **Row highlight:** a colour fade only.
+- **Photo flight:** skipped.
+
+Tested in headless Edge (motion on and off) and the browser pane. The confirmed-save highlight was not run end to end, to avoid writing test rows into Neon.
+
+## Landing scroll story (2026-11-12)
+
+Persuade mode, so the landing page earns one authored scroll moment (Motion Director). All scroll-linked motion is GSAP ScrollTrigger, scrubbed to scroll, with `<main>` as the scroller.
+
+| Scene | What happens | Files |
+|---|---|---|
+| **Focal: product story** (replaces the static map preview in "See what is near, and what it costs") | The drawn map stays on screen (CSS `position: sticky`, no pinning) while four chapters scroll past. Search pill and point, then the 3 km ring, then price pins (nearest first), then the budget chip with over-budget pins fading back and a real count, then the pick turning Fired Clay and its room card rising. The chapter being read is full strength, the others at 28% | `components/landing/story-section.tsx` |
+| Hero depth | Photos drift up at different speeds as the hero leaves (−36, −64, −96 px). Text never moves | `components/landing/scroll-scenes.tsx` |
+| Photo wipes ("Two ways") | Photos open from an inset frame and settle out of a 1.14 zoom | `scroll-scenes.tsx` |
+| Closing section | Corridor photo eases out of a 1.18 zoom; the clay rule draws in | `scroll-scenes.tsx` |
+| Section headings | Wipe up through a mask (clip-path) as they reveal | `globals.css` |
+| How it works | Clay line and step numbers (earlier pass) | `journey-progress.tsx` |
+
+Rules kept:
+- **Finished-state markup:** the page loads in its finished state. Without JavaScript, or with reduced motion, the full map, all chapters, every photo and every heading show at once.
+- **Phones:** the map sticks under the header at half the screen height, and the chapters scroll up under it. Markers sit in a band below the top controls.
+- **Rejected:** Lenis smooth scrolling, pinned scroll-jacking, letter splitting, parallax on text, and decorative blobs.
+- **Removed:** `nearby-preview.tsx` (replaced by the story; still in git history).
+
+Tested in headless Edge at 1440×900 and 390×844 with motion on and off: progression at six scroll points, no horizontal overflow and no console errors.
+
+## Visual critique (2026-11-12)
+
+Scores, measured gates, ranked fixes and before/after notes: `docs/web/CRITIQUE-2026-11-12.md`. Fixed: account page next step and title, honest log-in copy, visible dialog close, owner getting-started checklist, owner nav grouping and phone tab labels, properties card height.

@@ -20,12 +20,13 @@ async function Properties({ ownerId }: { ownerId: string }) {
   return (
     <>
       <PageTitle title="My Properties" intro="Each building you rent rooms in. Renters only ever see the street and area." />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] [&>*]:min-w-0">
+      {/* items-start: the list card keeps its own height instead of stretching beside the form */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px] [&>*]:min-w-0">
         <Panel title={props.length ? `${props.length} ${props.length === 1 ? "property" : "properties"}` : "No properties yet"}>
           {props.length ? (
             <ul className="divide-y divide-limestone">
               {props.map((p) => (
-                <li key={p.id}>
+                <li key={p.id} data-row-id={p.id}>
                   <Link href={`/owner/properties/${p.id}`} className="-mx-2 flex flex-wrap items-center justify-between gap-3 rounded-md px-2 py-3.5 transition-colors hover:bg-surface">
                     <span className="min-w-0">
                       <span className="block text-body font-medium text-ink">{p.name}</span>

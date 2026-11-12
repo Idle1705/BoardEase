@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Building2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { countNewInquiries, getOwnerInventory } from "@/server/owner";
 import { OwnerGate, PageSkeleton } from "../gate";
 import { FreeBeds, PageTitle, Panel } from "../ui";
@@ -26,19 +26,42 @@ async function Dashboard({ ownerId, name }: { ownerId: string; name: string }) {
     return (
       <>
         <PageTitle title={`Welcome, ${first}`} intro="Your numbers appear here once you add a property and its rooms." />
-        <Panel className="flex flex-col items-start gap-4 p-8 sm:p-10">
-          <span className="grid size-12 place-items-center rounded-xl bg-clay-soft text-clay">
-            <Building2 className="size-6" strokeWidth={1.75} />
-          </span>
-          <div>
-            <h2 className="text-title3 font-semibold text-ink">Add your first property</h2>
-            <p className="mt-1.5 max-w-[50ch] text-body text-ink-2">
-              Start with the building, then its rooms and beds. Nothing is shown to renters until you publish a listing.
-            </p>
-          </div>
-          <Link href="/owner/properties" className="inline-flex h-11 items-center gap-2 rounded-md bg-clay px-5 text-body font-semibold text-white transition-[background-color,scale] hover:bg-clay-hover active:scale-[0.97]">
-            Add a property <ArrowRight className="size-4" />
-          </Link>
+        {/* Getting started: the real order of work, so the empty portal shows where it leads.
+            Replaces an icon-in-a-tile header (a template tell) with information. */}
+        <Panel className="p-6 sm:p-8">
+          <h2 className="text-title3 font-semibold text-ink">Get your rooms in front of renters</h2>
+          <ol className="mt-6 flex flex-col">
+            {[
+              ["Add your property", "The building, with its street and barangay. The exact address stays private.", "now"],
+              ["Add its rooms and beds", "Single rooms, shared rooms rented per bed, or whole units, each with its own rent.", "next"],
+              ["Publish a listing", "Choose what renters see. Listings arrive in a later update.", "later"],
+            ].map(([head, body, when], i) => (
+              <li key={head} className="grid grid-cols-[2.25rem_1fr] gap-x-4 border-t border-limestone py-5 first:border-t-0 first:pt-0">
+                <span
+                  aria-hidden
+                  className={
+                    when === "now"
+                      ? "grid size-9 place-items-center rounded-full bg-clay font-display text-callout font-semibold text-white tabular-nums"
+                      : "grid size-9 place-items-center rounded-full font-display text-callout font-semibold text-subtle tabular-nums ring-1 ring-ink/15"
+                  }
+                >
+                  {i + 1}
+                </span>
+                <div>
+                  <h3 className="text-callout font-semibold text-ink">
+                    <span className="sr-only">Step {i + 1}: </span>
+                    {head}
+                  </h3>
+                  <p className="mt-1 max-w-[52ch] text-body text-ink-2">{body}</p>
+                  {when === "now" && (
+                    <Link href="/owner/properties" className="mt-4 inline-flex h-11 items-center gap-2 rounded-md bg-clay px-5 text-body font-semibold text-white transition-[background-color,scale] duration-150 hover:bg-clay-hover active:scale-[0.97]">
+                      Add a property <ArrowRight className="size-4" />
+                    </Link>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
         </Panel>
       </>
     );
